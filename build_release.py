@@ -40,7 +40,7 @@ def build_release():
     # Update factorio folder mod symlink
     mods_path = cwd / "userdata" / "mods"
     old_mod_symlink = list(itertools.islice(mods_path.glob(MODNAME + "_*"), 1))[0]
-    new_mod_symlink = Path(mods_path, MODNAME + "_" + new_mod_version)
+    new_mod_symlink = mods_path / (MODNAME + "_" + new_mod_version)
     old_mod_symlink.rename(new_mod_symlink)
     print("- mod folder symlink updated")
 
@@ -83,7 +83,9 @@ def build_release():
     full_mod_name = Path(MODNAME + "_" + new_mod_version)
     tmp_modfiles_path = cwd / MODNAME / full_mod_name
     modfiles_path.rename(tmp_modfiles_path)
-    zipfile_path = Path(cwd, MODNAME, "releases", full_mod_name)
+    releases_path = cwd / MODNAME / "releases"
+    releases_path.mkdir(exist_ok=True)
+    zipfile_path = releases_path / full_mod_name
     shutil.make_archive(str(zipfile_path), "zip", str(cwd / MODNAME), str(tmp_modfiles_path.parts[-1]))
     tmp_modfiles_path.rename(modfiles_path)
 

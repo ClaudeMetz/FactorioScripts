@@ -30,7 +30,7 @@ def switch_branch(branchname):
     # Update factorio folder mod symlink
     mods_path = cwd / "userdata" / "mods"
     old_mod_symlink = list(itertools.islice(mods_path.glob(MODNAME + "_*"), 1))[0]
-    new_mod_symlink = Path(mods_path, MODNAME + "_" + new_mod_version)
+    new_mod_symlink = mods_path / (MODNAME + "_" + new_mod_version)
     old_mod_symlink.rename(new_mod_symlink)
     print("- mod folder symlink updated")
 
