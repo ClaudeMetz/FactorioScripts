@@ -7,6 +7,7 @@
 import fileinput
 import itertools
 import json
+import os
 import re
 import shutil
 import sys
@@ -78,6 +79,11 @@ def build_release():
     # Create zip archive (stealthily include the LICENSE)
     tmp_license_path = modfiles_path / "LICENSE.md"
     shutil.copy(str(cwd / MODNAME / "LICENSE.md"), str(tmp_license_path))
+
+    # Remove silly .DS_Store files before creating the zip.file
+    for dirpath, _, _ in os.walk(modfiles_path):
+        DS_store_path = Path(dirpath, ".DS_Store")
+        DS_store_path.unlink(missing_ok=True)
 
     # Rename modfiles folder temporarily so the zip generates correctly
     full_mod_name = Path(MODNAME + "_" + new_mod_version)
