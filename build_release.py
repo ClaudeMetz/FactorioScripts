@@ -80,6 +80,28 @@ def build_release():
     tmp_license_path = modfiles_path / "LICENSE.md"
     shutil.copy(str(cwd / MODNAME / "LICENSE.md"), str(tmp_license_path))
 
+    # Include up-to-date versions of foreign locales, if present
+    foreign_locale_path = cwd / MODNAME / "locale"
+    modfiles_locale_path = modfiles_path / "locale"
+    locale_repo = repo.submodule("locale")
+    locale_list = []
+
+    if locale_repo.exists():
+        # Pull locale module
+        locale_repo.module().git.pull()
+
+        # Stealthily include files into the zip
+        tmp_locale_license_path = modfiles_locale_path / "LICENSE.md"
+        shutil.copy(str(foreign_locale_path / "LICENSE.md"), tmp_locale_license_path)
+
+        directory_list = [f for f in foreign_locale_path.rglob('./*') if f.is_dir()]
+        for directory in directory_list:
+            locale_name = directory.name
+            locale_list.append(locale_name)
+            locale_destination_path = modfiles_locale_path / locale_name
+            locale_destination_path.mkdir()
+            shutil.copy(str(directory / "config.cfg"), str(locale_destination_path / "config.cfg"))
+
     # Remove silly .DS_Store files before creating the zip.file
     for dirpath, _, _ in os.walk(modfiles_path):
         DS_store_path = Path(dirpath, ".DS_Store")
@@ -94,9 +116,13 @@ def build_release():
     zipfile_path = releases_path / full_mod_name
     shutil.make_archive(str(zipfile_path), "zip", str(cwd / MODNAME), str(tmp_modfiles_path.parts[-1]))
     tmp_modfiles_path.rename(modfiles_path)
-
-    tmp_license_path.unlink()
     print("- zip archive created")
+
+    # Remove stealthily included files
+    tmp_license_path.unlink()
+    tmp_locale_license_path.unlink(missing_ok=True)
+    for locale in locale_list:
+        shutil.rmtree(str(modfiles_locale_path / locale))
 
     # Commit and push to GitHub
     repo.git.add("-A")
