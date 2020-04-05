@@ -83,15 +83,16 @@ def build_release():
     # Include up-to-date versions of foreign locales, if present
     foreign_locale_path = cwd / MODNAME / "locale"
     modfiles_locale_path = modfiles_path / "locale"
-    locale_repo = repo.submodule("locale")
+    tmp_locale_license_path = modfiles_locale_path / "LICENSE.md"
     locale_list = []
 
-    if locale_repo.exists():
+    if foreign_locale_path.exists():
+        locale_repo = repo.submodule("locale")
+        
         # Pull locale module
         locale_repo.module().git.pull()
 
         # Stealthily include files into the zip
-        tmp_locale_license_path = modfiles_locale_path / "LICENSE.md"
         shutil.copy(str(foreign_locale_path / "LICENSE.md"), tmp_locale_license_path)
 
         directory_list = [f for f in foreign_locale_path.rglob('./*') if f.is_dir()]
