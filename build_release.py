@@ -102,6 +102,7 @@ def build_release():
             locale_destination_path = modfiles_locale_path / locale_name
             locale_destination_path.mkdir()
             shutil.copy(str(directory / "config.cfg"), str(locale_destination_path / "config.cfg"))
+        print("- foreign locale files updated")
 
     # Remove silly .DS_Store files before creating the zip.file
     for dirpath, _, _ in os.walk(modfiles_path):
