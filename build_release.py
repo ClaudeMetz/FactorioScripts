@@ -20,11 +20,11 @@ import git  # gitpython module
 MODNAME = sys.argv[1]
 
 cwd = Path.cwd()
-repo = git.Repo(cwd / MODNAME)
+repo = git.Repo(cwd)
 
 def build_release():
     # Determine the next mod version
-    modfiles_path = cwd / MODNAME / "modfiles"
+    modfiles_path = cwd / "modfiles"
     info_json_path = modfiles_path / "info.json"
     with info_json_path.open("r") as file:
         data = json.load(file)
@@ -37,13 +37,6 @@ def build_release():
     with info_json_path.open("w") as file:
         json.dump(data, file, indent=4)
     print("- info.json version bumped")
-
-    # Update factorio folder mod symlink
-    mods_path = cwd / "userdata" / "mods"
-    old_mod_symlink = list(itertools.islice(mods_path.glob(MODNAME + "_*"), 1))[0]
-    new_mod_symlink = mods_path / (MODNAME + "_" + new_mod_version)
-    old_mod_symlink.rename(new_mod_symlink)
-    print("- mod folder symlink updated")
 
     # Disable devmode if it is active
     tmp_path = modfiles_path / "tmp"
@@ -78,17 +71,18 @@ def build_release():
 
     # Create zip archive (stealthily include the LICENSE)
     tmp_license_path = modfiles_path / "LICENSE.md"
-    shutil.copy(str(cwd / MODNAME / "LICENSE.md"), str(tmp_license_path))
+    shutil.copy(str(cwd / "LICENSE.md"), str(tmp_license_path))
+    print("- license file included")
 
     # Include up-to-date versions of foreign locales, if present
-    foreign_locale_path = cwd / MODNAME / "locale"
+    foreign_locale_path = cwd / "locale"
     modfiles_locale_path = modfiles_path / "locale"
     tmp_locale_license_path = modfiles_locale_path / "LICENSE.md"
     locale_list = []
 
     if foreign_locale_path.exists():
         locale_repo = repo.submodule("locale")
-        
+
         # Pull locale module
         locale_repo.module().git.pull()
 
@@ -111,12 +105,12 @@ def build_release():
 
     # Rename modfiles folder temporarily so the zip generates correctly
     full_mod_name = Path(MODNAME + "_" + new_mod_version)
-    tmp_modfiles_path = cwd / MODNAME / full_mod_name
+    tmp_modfiles_path = cwd / full_mod_name
     modfiles_path.rename(tmp_modfiles_path)
-    releases_path = cwd / MODNAME / "releases"
+    releases_path = cwd / "releases"
     releases_path.mkdir(exist_ok=True)
     zipfile_path = releases_path / full_mod_name
-    shutil.make_archive(str(zipfile_path), "zip", str(cwd / MODNAME), str(tmp_modfiles_path.parts[-1]))
+    shutil.make_archive(str(zipfile_path), "zip", str(cwd), str(tmp_modfiles_path.parts[-1]))
     tmp_modfiles_path.rename(modfiles_path)
     print("- zip archive created")
 
