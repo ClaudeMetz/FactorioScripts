@@ -56,7 +56,7 @@ def new_migration():
     version_line_regex = r"^\s+\[\d+\] = {version=.+},?\n$"
     migrator_lines[:] = [line for line in migrator_lines if not re.fullmatch(version_line_regex, line)]
     for line_index, line in enumerate(migrator_lines):
-        if "migration_masterlist = {" in line:
+        if "local migration_masterlist = {" in line:
             version_index = 1
             for version in masterlist:
                 new_version_line = "    [{0}] = {{version=\"{1}\"}},\n".format(version_index, version)
