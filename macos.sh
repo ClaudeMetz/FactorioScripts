@@ -8,7 +8,7 @@ origin=$(pwd)
 cd ".."
 modname=${PWD##*/}
 
-echo "[1] New changelog entry"
+echo "[1] New dev cycle"
 echo "[2] New migration"
 echo "[3] Build release"
 echo -e "Select script to run: \c"
@@ -17,7 +17,7 @@ read choice
 if [ $choice -eq 1 ]
 then
     cd "modfiles/"
-    script="${origin}/new_changelog_entry.py"
+    script="${origin}/new_dev_cycle.py"
 elif [ $choice -eq 2 ]
 then
     cd "modfiles/"

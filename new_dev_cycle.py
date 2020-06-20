@@ -7,7 +7,7 @@ from pathlib import Path
 
 cwd = Path.cwd()
 
-def new_changelog_entry():
+def new_dev_cycle():
     # Add a blank changelog entry for further development
     changelog_path = cwd / "changelog.txt"
     new_changelog_entry = ("-----------------------------------------------------------------------------------------------"
@@ -33,6 +33,6 @@ def new_changelog_entry():
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to add a changelog entry? (y/n): ")
+    proceed = input("Sure to start a new dev cycle? (y/n): ")
     if proceed == "y":
-        new_changelog_entry()
+        new_dev_cycle()
