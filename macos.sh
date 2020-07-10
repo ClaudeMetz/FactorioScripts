@@ -16,7 +16,6 @@ read choice
 
 if [ $choice -eq 1 ]
 then
-    cd "modfiles/"
     script="${origin}/new_dev_cycle.py"
 elif [ $choice -eq 2 ]
 then

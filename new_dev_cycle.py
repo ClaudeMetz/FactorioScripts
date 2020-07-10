@@ -6,10 +6,11 @@ import re
 from pathlib import Path
 
 cwd = Path.cwd()
+modfiles_path = cwd / "modfiles"
 
 def new_dev_cycle():
     # Add a blank changelog entry for further development
-    changelog_path = cwd / "changelog.txt"
+    changelog_path = modfiles_path / "changelog.txt"
     new_changelog_entry = ("-----------------------------------------------------------------------------------------------"
                            "----\nVersion: 0.00.00\nDate: 00. 00. 0000\n  Features:\n    - \n  Changes:\n    - \n  "
                            "Bugfixes:\n    - \n\n")
@@ -21,8 +22,8 @@ def new_dev_cycle():
     print("- changelog entry added")
 
     # Disable devmode
-    tmp_path = cwd / "tmp"
-    control_file_path = cwd / "control.lua"
+    tmp_path = modfiles_path / "tmp"
+    control_file_path = modfiles_path / "control.lua"
     with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
         for line in old_file:
             line = re.sub(r"^--devmode = true", "devmode = true", line)
@@ -30,6 +31,11 @@ def new_dev_cycle():
     control_file_path.unlink()
     tmp_path.rename(control_file_path)
     print("- devmode enabled")
+
+    # Create symlink to scenarios-folder
+    tmp_scenarios_path = modfiles_path / "scenarios"
+    tmp_scenarios_path.symlink_to(cwd / "scenarios")
+    print("- scenarios symlink created")
 
 
 if __name__ == "__main__":

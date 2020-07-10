@@ -69,6 +69,11 @@ def build_release():
     tmp_path.rename(new_changelog_path)
     print("- changelog updated for release")
 
+    # Remove symlink to scenarios-folder
+    scenarios_symlink = modfiles_path / "scenarios"
+    scenarios_symlink.unlink(missing_ok=True)
+    print("- scenarios symlink removed")
+
     # Create zip archive (stealthily include the LICENSE)
     tmp_license_path = modfiles_path / "LICENSE.md"
     shutil.copy(str(cwd / "LICENSE.md"), str(tmp_license_path))
@@ -121,9 +126,9 @@ def build_release():
         shutil.rmtree(str(modfiles_locale_path / locale))
 
     # Commit and push to GitHub
-    repo.git.add("-A")
-    repo.git.commit(m="Release " + new_mod_version)
-    repo.git.push("origin")
+    #repo.git.add("-A")
+    #repo.git.commit(m="Release " + new_mod_version)
+    #repo.git.push("origin")
     print("- changes committed and pushed")
 
 
