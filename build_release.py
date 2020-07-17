@@ -126,9 +126,9 @@ def build_release():
         shutil.rmtree(str(modfiles_locale_path / locale))
 
     # Commit and push to GitHub
-    #repo.git.add("-A")
-    #repo.git.commit(m="Release " + new_mod_version)
-    #repo.git.push("origin")
+    repo.git.add("-A")
+    repo.git.commit(m="Release " + new_mod_version)
+    repo.git.push("origin")
     print("- changes committed and pushed")
 
 
