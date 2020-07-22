@@ -21,15 +21,6 @@ def new_migration():
     blank_migration_path = (migrations_path / "migration_0_0_0.lua")
     new_migration_path = (migrations_path / "migration_{}.lua".format(new_mod_version))
     shutil.copy(blank_migration_path, new_migration_path)
-
-    # Update the new file to the desired version
-    tmp_path = cwd / "tmp"
-    with tmp_path.open("w") as new_file, new_migration_path.open("r") as old_file:
-        for line in old_file:
-            line = re.sub("0_0_0", new_mod_version, line)
-            new_file.write(line)
-    new_migration_path.unlink()
-    tmp_path.rename(new_migration_path)
     print("- migration file created")
 
     # Load and update the masterlist
@@ -46,20 +37,16 @@ def new_migration():
     with (migrator_path.open("r")) as migrator:
         migrator_lines = migrator.readlines()
 
-    # Remove all require lines and add the updated ones according to the masterlist
-    migrator_lines[:] = [line for line in migrator_lines if not "require" in line]
-    for version in reversed(masterlist):
-        formatted_version = version.replace(".", "_")
-        migrator_lines.insert(0, "require(\"data.migrations.migration_{}\")\n".format(formatted_version))
-
-    # Update the migrator-masterlist in the same way
+    # Remove every line of the migration masterlist and replace them according to the masterlist
     version_line_regex = r"^\s+\[\d+\] = {version=.+},?\n$"
     migrator_lines[:] = [line for line in migrator_lines if not re.fullmatch(version_line_regex, line)]
     for line_index, line in enumerate(migrator_lines):
         if "local migration_masterlist = {" in line:
             version_index = 1
-            for version in masterlist:
-                new_version_line = "    [{0}] = {{version=\"{1}\"}},\n".format(version_index, version)
+            for masterlist_version in masterlist:
+                internal_version = masterlist_version.replace(".", "_")
+                new_version_line = ("    [{0}] = {{version=\"{1}\", migration=require(\"data.migrations.migration_"
+                                    "{2}\")}},\n".format(version_index, masterlist_version, internal_version))
                 migrator_lines.insert(line_index+version_index, new_version_line)
                 version_index += 1
             break
