@@ -23,6 +23,11 @@ cwd = Path.cwd()
 repo = git.Repo(cwd)
 
 def build_release():
+    # Abort if running this on non-master branch
+    if repo.active_branch.name != "master":
+        print("- not on master branch, aborting")
+        return
+
     # Determine the next mod version
     modfiles_path = cwd / "modfiles"
     info_json_path = modfiles_path / "info.json"
@@ -43,7 +48,7 @@ def build_release():
     control_file_path = modfiles_path / "control.lua"
     with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
         for line in old_file:
-            line = re.sub(r"^devmode = true", "--devmode = true", line)
+            line = re.sub("devmode = true", "devmode = false", line)
             new_file.write(line)
     control_file_path.unlink()
     tmp_path.rename(control_file_path)
