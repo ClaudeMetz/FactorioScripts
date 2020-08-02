@@ -26,7 +26,7 @@ def new_dev_cycle():
     control_file_path = modfiles_path / "control.lua"
     with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
         for line in old_file:
-            line = re.sub("devmode = false", "devmode = true", line)
+            line = re.sub("DEVMODE = false", "DEVMODE = true", line)
             new_file.write(line)
     control_file_path.unlink()
     tmp_path.rename(control_file_path)

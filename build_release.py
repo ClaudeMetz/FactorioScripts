@@ -48,7 +48,7 @@ def build_release():
     control_file_path = modfiles_path / "control.lua"
     with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
         for line in old_file:
-            line = re.sub("devmode = true", "devmode = false", line)
+            line = re.sub("DEVMODE = true", "DEVMODE = false", line)
             new_file.write(line)
     control_file_path.unlink()
     tmp_path.rename(control_file_path)
