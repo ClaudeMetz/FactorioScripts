@@ -14,12 +14,13 @@ def new_migration():
     with (cwd / "info.json").open("r") as file:
         split_old_mod_version = json.load(file)["version"].split(".")
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
-    new_mod_version = "_".join(split_old_mod_version)
+    new_mod_version = ".".join(split_old_mod_version)
+    print("- next version determined")
 
     # Add a new migration file, targeted at the next version, using the blank 0_0_0 template
     migrations_path = cwd / "data" / "migrations"
     blank_migration_path = (migrations_path / "migration_0_0_0.lua")
-    new_migration_path = (migrations_path / "migration_{}.lua".format(new_mod_version))
+    new_migration_path = (migrations_path / "migration_{}.lua".format(new_mod_version.replace(".", "_")))
     shutil.copy(blank_migration_path, new_migration_path)
     print("- migration file created")
 
@@ -27,7 +28,7 @@ def new_migration():
     masterlist_path = migrations_path / "masterlist.json"
     with masterlist_path.open("r") as file:
         masterlist = json.load(file)
-    masterlist.append(new_mod_version.replace("_", "."))
+    masterlist.append(new_mod_version)
     with masterlist_path.open("w") as file:
         json.dump(masterlist, file, indent=4)
     print("- masterlist updated")
@@ -45,8 +46,8 @@ def new_migration():
             version_index = 1
             for masterlist_version in masterlist:
                 internal_version = masterlist_version.replace(".", "_")
-                new_version_line = ("    [{0}] = {{version=\"{1}\", migration=require(\"data.migrations.migration_"
-                                    "{2}\")}},\n".format(version_index, masterlist_version, internal_version))
+                new_version_line = (f"    [{version_index}] = {{version=\"{masterlist_version}\", "
+                                    f"migration=require(\"data.migrations.migration_{internal_version}\")}},\n")
                 migrator_lines.insert(line_index+version_index, new_version_line)
                 version_index += 1
             break

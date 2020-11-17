@@ -23,7 +23,6 @@ cwd = Path.cwd()
 repo = git.Repo(cwd)
 
 def build_release():
-    # Abort if running this on non-master branch
     if repo.active_branch.name != "master":
         print("- not on master branch, aborting")
         return
@@ -36,6 +35,7 @@ def build_release():
     split_old_mod_version = data["version"].split(".")
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
     new_mod_version = ".".join(split_old_mod_version)
+    print("- next version determined")
 
     # Bump info.json version
     data["version"] = new_mod_version
