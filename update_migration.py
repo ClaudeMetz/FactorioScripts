@@ -75,6 +75,11 @@ def update_migration():
         migrator.writelines(migrator_lines)
     print("- migrator file updated")
 
+    # Commit changes
+    repo.git.add("-A")
+    repo.git.commit(m="Update migration version")
+    print("- changes committed")
+
 
 if __name__ == "__main__":
     proceed = input("Sure to update the last migration? (y/n): ")
