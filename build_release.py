@@ -26,6 +26,9 @@ def build_release():
     if repo.active_branch.name != "master":
         print("- not on master branch, aborting")
         return
+    if repo.is_dirty():
+        print("- repository is dirty, aborting")
+        return
 
     # Determine the next mod version
     modfiles_path = cwd / "modfiles"

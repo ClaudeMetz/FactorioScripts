@@ -23,6 +23,9 @@ def update_migration():
     if relevant_branch == "master":
         print("- on master branch, aborting")
         return
+    if repo.is_dirty():
+        print("- repository is dirty, aborting")
+        return
 
     # Determine the old migration version on this branch
     migrations_path = cwd / "data" / "migrations"
