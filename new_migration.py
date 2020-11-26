@@ -5,7 +5,11 @@
 import json
 import shutil
 import re
+import sys
 from pathlib import Path
+
+# Script config
+MODNAME = sys.argv[1]
 
 cwd = Path.cwd()
 
@@ -58,6 +62,6 @@ def new_migration():
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to add a new migration? (y/n): ")
+    proceed = input(f"[{MODNAME}] Sure to add a new migration? (y/n): ")
     if proceed == "y":
         new_migration()

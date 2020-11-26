@@ -7,9 +7,13 @@
 import json
 import shutil
 import re
+import sys
 from pathlib import Path
 
 import git  # gitpython module
+
+# Script config
+MODNAME = sys.argv[1]
 
 cwd = Path.cwd()
 repo = git.Repo(cwd / "..")
@@ -82,6 +86,6 @@ def update_migration():
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to update the last migration? (y/n): ")
+    proceed = input(f"[{MODNAME}] Sure to update the last migration? (y/n): ")
     if proceed == "y":
         update_migration()

@@ -3,7 +3,11 @@
 # Folder structure needs to be the same as Factory Planner to work
 
 import re
+import sys
 from pathlib import Path
+
+# Script config
+MODNAME = sys.argv[1]
 
 cwd = Path.cwd()
 modfiles_path = cwd / "modfiles"
@@ -41,6 +45,6 @@ def new_dev_cycle():
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to start a new dev cycle? (y/n): ")
+    proceed = input(f"[{MODNAME}] Sure to start a new dev cycle? (y/n): ")
     if proceed == "y":
         new_dev_cycle()

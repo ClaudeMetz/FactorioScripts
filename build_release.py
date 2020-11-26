@@ -138,6 +138,6 @@ def build_release():
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to build a release? (y/n): ")
+    proceed = input(f"[{MODNAME}] Sure to build a release? (y/n): ")
     if proceed == "y":
         build_release()
