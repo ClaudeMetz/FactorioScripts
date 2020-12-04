@@ -1,4 +1,4 @@
-# This script updates the most recent migration to apply to the next release
+# This script updates mod and the most recent migration version to target the next release
 # It deduces the next release from the master branch
 # This becomes necessary when an older feature branch becomes out of date
 # It needs to be run in the root of the folder that contains the mod files
@@ -18,7 +18,7 @@ MODNAME = sys.argv[1]
 cwd = Path.cwd()
 repo = git.Repo(cwd / "..")
 
-def update_migration():
+def update_versions():
     relevant_branch = repo.active_branch.name
     if relevant_branch == "master":
         print("- on master branch, aborting")
@@ -47,6 +47,15 @@ def update_migration():
     if old_migration_version == new_mod_version:
         print("- migration up to date, aborting")
         return
+
+    # Update info.json
+    info_json_path = cwd / "info.json"
+    with info_json_path.open("r") as file:
+        data = json.load(file)
+    data["version"] = new_mod_version
+    with info_json_path.open("w") as file:
+        json.dump(data, file, indent=4)
+    print("- info.json version updated")
 
     # Update the migration file filename
     old_migration_path = (migrations_path / "migration_{}.lua".format(old_migration_version.replace(".", "_")))
@@ -84,11 +93,11 @@ def update_migration():
 
     # Commit changes
     repo.git.add("-A")
-    repo.git.commit(m="Update migration version")
+    repo.git.commit(m="Update mod and migration versions")
     print("- changes committed")
 
 
 if __name__ == "__main__":
-    proceed = input(f"[{MODNAME}] Sure to update the last migration? (y/n): ")
+    proceed = input(f"[{MODNAME}] Sure to update mod and migration versions? (y/n): ")
     if proceed == "y":
-        update_migration()
+        update_versions()

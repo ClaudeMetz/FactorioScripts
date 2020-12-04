@@ -10,7 +10,7 @@ modname=${PWD##*/}
 
 echo "[1] New dev cycle"
 echo "[2] New migration"
-echo "[3] Update migration"
+echo "[3] Update versions"
 echo "[4] Build release"
 echo -e "Select script to run: \c"
 read choice
@@ -25,7 +25,7 @@ then
 elif [ $choice -eq 3 ]
 then
     cd "modfiles/"
-    script="${origin}/update_migration.py"
+    script="${origin}/update_versions.py"
 elif [ $choice -eq 4 ]
 then
     script="${origin}/build_release.py"
