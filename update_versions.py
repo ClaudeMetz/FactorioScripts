@@ -35,12 +35,13 @@ def update_versions():
     old_migration_version = masterlist[-1]  # grab last version in the list
     print("- old migration version determined")
 
-    # Determine the next mod version on master
+    # Determine the current and next mod version on master
     repo.git.checkout("master")
     with (cwd / "info.json").open("r") as file:
-        split_old_mod_version = json.load(file)["version"].split(".")
-    split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
-    new_mod_version = ".".join(split_old_mod_version)
+        current_mod_version = json.load(file)["version"]
+    split_current_mod_version = current_mod_version.split(".")
+    split_current_mod_version[-1] = str(int(split_current_mod_version[-1]) + 1)  # update version to the new one
+    new_mod_version = ".".join(split_current_mod_version)
     repo.git.checkout(relevant_branch)
     print("- next mod version determined")
 
@@ -52,7 +53,7 @@ def update_versions():
     info_json_path = cwd / "info.json"
     with info_json_path.open("r") as file:
         data = json.load(file)
-    data["version"] = new_mod_version
+    data["version"] = current_mod_version
     with info_json_path.open("w") as file:
         json.dump(data, file, indent=4)
     print("- info.json version updated")
