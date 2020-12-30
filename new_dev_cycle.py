@@ -15,9 +15,9 @@ modfiles_path = cwd / "modfiles"
 def new_dev_cycle():
     # Add a blank changelog entry for further development
     changelog_path = modfiles_path / "changelog.txt"
-    new_changelog_entry = ("-----------------------------------------------------------------------------------------------"
-                           "----\nVersion: 0.00.00\nDate: 00. 00. 0000\n  Features:\n    - \n  Changes:\n    - \n  "
-                           "Bugfixes:\n    - \n\n")
+    new_changelog_entry = ("-----------------------------------------------------------------------------------------"
+                           "----------\nVersion: 0.00.00\nDate: 00. 00. 0000\n  Features:\n    - \n  Changes:\n    - "
+                           "\n Bugfixes:\n    - \n\n")
     with (changelog_path.open("r")) as changelog:
         old_changelog = changelog.readlines()
     old_changelog.insert(0, new_changelog_entry)

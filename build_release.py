@@ -61,16 +61,27 @@ def build_release():
     tmp_path = modfiles_path / "tmp"
     old_changelog_path = modfiles_path / "changelog.txt"
     with tmp_path.open("w") as new_file, old_changelog_path.open("r") as old_file:
-        changes = 0  # Only changes the first changelog entry
+        # Find the strings corresponding to eventual empty categories (this is silly)
+        empty_categories = re.findall(r"  [\w]+:\n    - ?\n", old_file.read())
+        empty_categories = [(line.split("\n")[0] + "\n") for line in empty_categories]
+        empty_categories = dict.fromkeys(empty_categories, 1)
+        old_file.seek(0)  # reset seekhead after file.read()
+
+        # Rewrite the file, incorporating the necessary changes
+        separation_line_count = 0  # Only change the topmost changelog entry
         for line in old_file:
-            if changes < 2 and "Version" in line:
-                new_file.write("Version: " + new_mod_version + "\n")
-                changes += 1
-            elif changes < 2 and "Date" in line:
-                new_file.write("Date: " + datetime.today().strftime("%d. %m. %Y") + "\n")
-                changes += 1
-            else:
+            if re.match(r"-{99}", line):
+                separation_line_count += 1
+
+            if separation_line_count > 1:
                 new_file.write(line)
+            else:
+                if "Version: 0.00.00" in line:
+                    new_file.write("Version: " + new_mod_version + "\n")
+                elif "Date: 00. 00. 0000" in line:
+                    new_file.write("Date: " + datetime.today().strftime("%d. %m. %Y") + "\n")
+                elif not re.match(r"    -( )?\n", line) and not line in empty_categories:
+                    new_file.write(line)
 
     old_changelog_path.unlink()
     new_changelog_path = modfiles_path / "changelog.txt"
