@@ -30,6 +30,9 @@ def build_release():
         print("- repository is dirty, aborting")
         return
 
+    # Build mod
+    print("Building mod ...")
+
     # Determine the next mod version
     modfiles_path = cwd / "modfiles"
     info_json_path = modfiles_path / "info.json"
@@ -38,7 +41,6 @@ def build_release():
     split_old_mod_version = data["version"].split(".")
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
     new_mod_version = ".".join(split_old_mod_version)
-    print("- next version determined")
 
     # Bump info.json version
     data["version"] = new_mod_version
@@ -144,12 +146,53 @@ def build_release():
     for locale in locale_list:
         shutil.rmtree(str(modfiles_locale_path / locale))
 
-    # Commit and push to GitHub
+    # Commit release changes
     repo.git.add("-A")
     repo.git.commit(m="Release " + new_mod_version)
-    repo.git.push("origin")
-    print("- changes committed and pushed")
+    print("Build complete\n")
 
+    # Start new dev cycle immediately
+    print("Preparing new development cycle ...")
+
+    # Add a blank changelog entry for further development
+    changelog_path = modfiles_path / "changelog.txt"
+    new_changelog_entry = ("-----------------------------------------------------------------------------------------"
+                           "----------\nVersion: 0.00.00\nDate: 00. 00. 0000\n  Features:\n    - \n  Changes:\n    - "
+                           "\n  Bugfixes:\n    - \n\n")
+    with (changelog_path.open("r")) as changelog:
+        old_changelog = changelog.readlines()
+    old_changelog.insert(0, new_changelog_entry)
+    with (changelog_path.open("w")) as changelog:
+        changelog.writelines(old_changelog)
+    print("- blank changelog entry added")
+
+    # Disable devmode
+    tmp_path = modfiles_path / "tmp"
+    control_file_path = modfiles_path / "control.lua"
+    with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
+        for line in old_file:
+            line = re.sub("DEVMODE = false", "DEVMODE = true", line)
+            new_file.write(line)
+    control_file_path.unlink()
+    tmp_path.rename(control_file_path)
+    print("- devmode enabled")
+
+    # Create symlink to scenarios-folder
+    scenarios_path = cwd / "scenarios"
+    if scenarios_path.is_dir():
+        tmp_scenarios_path = modfiles_path / "scenarios"
+        tmp_scenarios_path.symlink_to(scenarios_path)
+        print("- scenarios symlink created")
+
+    # Commit new dev cycle changes
+    repo.git.add("-A")
+    repo.git.commit(m="Start new development cycle")
+    print("Development cycle started\n")
+
+    # Push to Github
+    print("Pushing changes ...", end="")
+    repo.git.push("origin")
+    print(" done")
 
 if __name__ == "__main__":
     proceed = input(f"[{MODNAME}] Sure to build a release? (y/n): ")
