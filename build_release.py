@@ -190,9 +190,9 @@ def build_release():
     print("Development cycle started\n")
 
     # Push to Github
-    print("Pushing changes ...", end="")
+    print("Pushing changes ...", end=" ", flush=True)
     repo.git.push("origin")
-    print(" done")
+    print("done")
 
 if __name__ == "__main__":
     proceed = input(f"[{MODNAME}] Sure to build a release? (y/n): ")
