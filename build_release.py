@@ -1,11 +1,9 @@
 # This script will build the zipped version of the mod that is ready for release on the mod portal
 # It will also first bump versions and the changelog, and commit and push the changes to Github
-# This needs to run in the directory that contains your Factorio installation as well as the mod project folder
-# Takes the modname from the first command line argument (although project structure needs to be as expected)
+# It needs to be run in the root mod project folder
+# Folder structure needs to be the same as Factory Planner to work
 # Requires GitPython to be installed (>pip install gitpython)
 
-import fileinput
-import itertools
 import json
 import os
 import re
@@ -14,7 +12,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import git  # gitpython module
+import git  # type: ignore
 
 # Script config
 MODNAME = sys.argv[1]
@@ -95,7 +93,7 @@ def build_release():
     scenarios_symlink.unlink(missing_ok=True)
     print("- scenarios symlink removed")
 
-    # Create zip archive (stealthily include the LICENSE)
+    # Stealthily include the LICENSE
     tmp_license_path = modfiles_path / "LICENSE.md"
     shutil.copy(str(cwd / "LICENSE.md"), str(tmp_license_path))
     print("- license file included")
@@ -193,6 +191,7 @@ def build_release():
     print("Pushing changes ...", end=" ", flush=True)
     repo.git.push("origin")
     print("done")
+
 
 if __name__ == "__main__":
     proceed = input(f"[{MODNAME}] Sure to build a release? (y/n): ")

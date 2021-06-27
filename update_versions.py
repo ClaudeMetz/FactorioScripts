@@ -3,14 +3,14 @@
 # This becomes necessary when an older feature branch becomes out of date
 # It needs to be run in the root of the folder that contains the mod files
 # Folder structure needs to be the same as Factory Planner to work
+# Requires GitPython to be installed (>pip install gitpython)
 
 import json
-import shutil
 import re
 import sys
 from pathlib import Path
 
-import git  # gitpython module
+import git  # type: ignore
 
 # Script config
 MODNAME = sys.argv[1]

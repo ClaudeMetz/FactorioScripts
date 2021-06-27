@@ -3,8 +3,8 @@
 # Folder structure needs to be the same as Factory Planner to work
 
 import json
-import shutil
 import re
+import shutil
 import sys
 from pathlib import Path
 

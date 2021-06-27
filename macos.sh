@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # macOS script to select and run various convenience scripts
-# It runs the selected python script in the appropriate directory
+# It runs the selected Python script in the appropriate directory
 
 origin=$(pwd)
 
