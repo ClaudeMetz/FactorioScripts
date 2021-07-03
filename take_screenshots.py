@@ -38,6 +38,6 @@ def take_screenshots():
 
 
 if __name__ == "__main__":
-    take_screenshots()
-    #proceed = input(f"[{MODNAME}] Sure to take screenshots? (y/n): ")
-    #if proceed == "y":
+    proceed = input(f"[{MODNAME}] Sure to take screenshots? (y/n): ")
+    if proceed == "y":
+      take_screenshots()
