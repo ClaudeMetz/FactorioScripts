@@ -77,9 +77,9 @@ def build_release():
                 new_file.write(line)
             else:
                 if "Version: 0.00.00" in line:
-                    new_file.write("Version: " + new_mod_version + "\n")
+                    new_file.write("Version: {}\n".format(new_mod_version))
                 elif "Date: 00. 00. 0000" in line:
-                    new_file.write("Date: " + datetime.today().strftime("%d. %m. %Y") + "\n")
+                    new_file.write("Date: {}\n".format(datetime.today().strftime("%d. %m. %Y")))
                 elif not re.match(r"    -( )?\n", line) and not line in empty_categories:
                     new_file.write(line)
 
@@ -146,7 +146,7 @@ def build_release():
 
     # Commit release changes
     repo.git.add("-A")
-    repo.git.commit(m="Release " + new_mod_version)
+    repo.git.commit(m="Release {}".format(new_mod_version))
     print("Build complete\n")
 
     # Start new dev cycle immediately
