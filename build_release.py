@@ -2,7 +2,6 @@
 # It will also first bump versions and the changelog, and commit and push the changes to Github
 # It needs to be run in the root mod project folder
 # Folder structure needs to be the same as Factory Planner to work
-# Requires GitPython to be installed (>pip install gitpython)
 
 import json
 import os
