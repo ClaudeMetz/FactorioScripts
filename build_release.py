@@ -1,8 +1,3 @@
-# This script will build the zipped version of the mod that is ready for release on the mod portal
-# It will also first bump versions and the changelog, and commit and push the changes to Github
-# It needs to be run in the root mod project folder
-# Folder structure needs to be the same as Factory Planner to work
-
 import json
 import os
 import re

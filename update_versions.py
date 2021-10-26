@@ -1,9 +1,3 @@
-# This script updates mod and the most recent migration version to target the next release
-# It deduces the next release from the master branch
-# This becomes necessary when an older feature branch becomes out of date
-# It needs to be run in the root of the folder that contains the mod files
-# Folder structure needs to be the same as Factory Planner to work
-
 import json
 import re
 import sys

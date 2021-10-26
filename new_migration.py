@@ -1,7 +1,3 @@
-# This script adds a new, blank migration and integrates it properly
-# It needs to be run in the root of the folder that contains the mod files
-# Folder structure needs to be the same as Factory Planner to work
-
 import json
 import re
 import shutil
