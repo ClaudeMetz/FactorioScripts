@@ -71,7 +71,7 @@ def build_release():
     # Detect whether Phobos should be used or not
     if (modfiles_path / "control.lua").is_file():
         control_path = modfiles_path / "control.lua"
-        ignore_pattern = None
+        ignore_pattern = ""
     elif (modfiles_path / "control.pho").is_file():
         control_path = modfiles_path / "control.pho"
         ignore_pattern = "*.pho"
@@ -93,7 +93,7 @@ def build_release():
     print("- relevant files copied")
 
     # Build with Phobos if necessary
-    if ignore_pattern is not None:
+    if ignore_pattern == "*.pho":
         phobos_path = cwd / "scripts" / "phobos_osx"
         print("- building with phobos...", end=" ", flush=True)
         subprocess.run([
