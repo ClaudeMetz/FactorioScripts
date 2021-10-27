@@ -28,7 +28,7 @@ def take_screenshots():
     print("- mod-list.json replaced")
 
     # Run the screenshotting scenario, waiting for it to finish
-    print("- running scenario ...", end=" ", flush=True)
+    print("- running scenario...", end=" ", flush=True)
     subprocess.run([
         "/usr/bin/open", "-W", "-a", FACTORIO_PATH, "--args",
         "--load-scenario", "{}/screenshotter".format(MODNAME),

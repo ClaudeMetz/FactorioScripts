@@ -1,7 +1,7 @@
 import json
-import os
 import re
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -21,9 +21,6 @@ def build_release():
     if repo.is_dirty():
         print("- repository is dirty, aborting")
         return
-
-    # Build mod
-    print("Building mod...")
 
     # Determine the next mod version
     modfiles_path = cwd / "modfiles"
@@ -71,23 +68,46 @@ def build_release():
     tmp_path.rename(new_changelog_path)
     print("- changelog updated for release")
 
-    # Copy relevant files to temporary folder
-    full_mod_name = Path(MODNAME + "_" + new_mod_version)
-    tmp_release_path = cwd / full_mod_name
-    ignore_patterns = shutil.ignore_patterns(r'.*', r'scenarios')
-    shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
-    print("- release files copied")
+    # Detect whether Phobos should be used or not
+    if (modfiles_path / "control.lua").is_file():
+        control_path = modfiles_path / "control.lua"
+        ignore_pattern = None
+    elif (modfiles_path / "control.pho").is_file():
+        control_path = modfiles_path / "control.pho"
+        ignore_pattern = "*.pho"
 
-    # Disable devmode in copy
-    tmp_path = tmp_release_path / "tmp"
-    control_file_path = tmp_release_path / "control.lua"
-    with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
+    # Disable devmode for release
+    tmp_control_path = modfiles_path / "tmp"
+    shutil.copyfile(control_path, tmp_control_path)  # copy as a backup
+    with control_path.open("w") as new_file, tmp_control_path.open("r") as old_file:
         for line in old_file:
             line = re.sub("DEVMODE = true", "DEVMODE = false", line)
             new_file.write(line)
-    control_file_path.unlink()
-    tmp_path.rename(control_file_path)
-    print("- devmode disabled")
+    print("- devmode disabled temporarily")
+
+    # Copy relevant files to temporary folder
+    full_mod_name = Path(MODNAME + "_" + new_mod_version)
+    tmp_release_path = cwd / full_mod_name
+    ignore_patterns = shutil.ignore_patterns('.*', 'scenarios', 'tmp', ignore_pattern)
+    shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
+    print("- relevant files copied")
+
+    # Build with Phobos if necessary
+    if ignore_pattern is not None:
+        phobos_path = cwd / "scripts" / "phobos_osx"
+        print("- building with phobos...", end=" ", flush=True)
+        subprocess.run([
+                "./lua", "--", "main.lua",
+                "--source", modfiles_path,
+                "--output", tmp_release_path,
+                "--profile", "release",
+                "--use-load"
+            ], cwd=phobos_path
+        )
+
+    # Restore control.lua from backup
+    tmp_control_path.rename(control_path)
+    print("- devmode re-enabled")
 
     # Include LICENSE file
     shutil.copy(str(cwd / "LICENSE.md"), str(tmp_release_path / "LICENSE.md"))
@@ -137,7 +157,7 @@ def build_release():
     # Commit and push release changes
     repo.git.add("-A")
     repo.git.commit(m="Release {}".format(new_mod_version))
-    print("Build complete! Pushing changes...", end=" ", flush=True)
+    print("- pushing changes...", end=" ", flush=True)
     repo.git.push("origin")
     print("done")
 

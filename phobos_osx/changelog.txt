@@ -1,0 +1,29 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.1
+Date: 2021-10-25
+  Changes:
+    - Fix missing thumbnail on mod portal
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2021-10-25
+  Major Features:
+    - Add command line tool for compiling
+    - Implement parsing of Lua 5.2 source code to AST
+    - Implement formatting AST to Lua 5.2 source code without making any format changes
+      (except concats with parenthesis in the middle of them)
+    - Implement compiling AST to Lua 5.2 bytecode
+    - Implement disassembing Lua 5.2 bytecode to AST
+  Minor Features:
+    - Add Phobos Debug Symbols v0 for use by third party tools (not Lua itself)
+  Features:
+    - Add Factorio in game commands to execute phobos code similar to regular Lua commands
+    - Add cmd option to compile to bytecode files or text files that `load` a bytecode string
+    - Add cmd option to change the `source` name used for compiled bytecode functions for debugging
+    - Add cmd option to monitor memory during compilation
+    - Add cmd option to ignore and continue past files with syntax errors
+    - Add WIP cmd option for build profiles (debug or release)
+  Optimizations:
+    - Implement folding pure const expressions
+    - Implement folding control statements with pure const conditions
+  Scripting:
+    - Add WIP cmd AST injection scripts during compilation
