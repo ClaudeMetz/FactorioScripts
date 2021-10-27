@@ -23,7 +23,7 @@ def build_release():
         return
 
     # Build mod
-    print("Building mod ...")
+    print("Building mod...")
 
     # Determine the next mod version
     modfiles_path = cwd / "modfiles"
@@ -39,17 +39,6 @@ def build_release():
     with info_json_path.open("w") as file:
         json.dump(data, file, indent=4)
     print("- info.json version bumped")
-
-    # Disable devmode if it is active
-    tmp_path = modfiles_path / "tmp"
-    control_file_path = modfiles_path / "control.lua"
-    with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
-        for line in old_file:
-            line = re.sub("DEVMODE = true", "DEVMODE = false", line)
-            new_file.write(line)
-    control_file_path.unlink()
-    tmp_path.rename(control_file_path)
-    print("- devmode disabled")
 
     # Update changelog file for release
     tmp_path = modfiles_path / "tmp"
@@ -82,69 +71,56 @@ def build_release():
     tmp_path.rename(new_changelog_path)
     print("- changelog updated for release")
 
-    # Remove symlink to scenarios-folder
-    scenarios_symlink = modfiles_path / "scenarios"
-    scenarios_symlink.unlink(missing_ok=True)
-    print("- scenarios symlink removed")
+    # Copy relevant files to temporary folder
+    full_mod_name = Path(MODNAME + "_" + new_mod_version)
+    tmp_release_path = cwd / full_mod_name
+    ignore_patterns = shutil.ignore_patterns(r'.*', r'scenarios')
+    shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
+    print("- release files copied")
 
-    # Stealthily include the LICENSE
-    tmp_license_path = modfiles_path / "LICENSE.md"
-    shutil.copy(str(cwd / "LICENSE.md"), str(tmp_license_path))
+    # Disable devmode in copy
+    tmp_path = tmp_release_path / "tmp"
+    control_file_path = tmp_release_path / "control.lua"
+    with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
+        for line in old_file:
+            line = re.sub("DEVMODE = true", "DEVMODE = false", line)
+            new_file.write(line)
+    control_file_path.unlink()
+    tmp_path.rename(control_file_path)
+    print("- devmode disabled")
+
+    # Include LICENSE file
+    shutil.copy(str(cwd / "LICENSE.md"), str(tmp_release_path / "LICENSE.md"))
     print("- license file included")
 
     # Include up-to-date versions of foreign locales, if present
     foreign_locale_path = cwd / "locale"
-    modfiles_locale_path = modfiles_path / "locale"
-    tmp_locale_license_path = modfiles_locale_path / "LICENSE.md"
-    locale_list = []
+    release_locale_path = tmp_release_path / "locale"
+    tmp_locale_license_path = release_locale_path / "LICENSE.md"
 
     if foreign_locale_path.exists():
-        locale_repo = repo.submodule("locale")
-
-        # Pull locale module
-        locale_repo.module().git.pull()
-
-        # Stealthily include files into the zip
         shutil.copy(str(foreign_locale_path / "LICENSE.md"), tmp_locale_license_path)
 
+        locale_repo = repo.submodule("locale")
+        locale_repo.module().git.pull()
+
+        locale_list = []
         directory_list = [f for f in foreign_locale_path.rglob('./*') if f.is_dir()]
         for directory in directory_list:
             locale_name = directory.name
             locale_list.append(locale_name)
-            locale_destination_path = modfiles_locale_path / locale_name
+            locale_destination_path = release_locale_path / locale_name
             locale_destination_path.mkdir()
             shutil.copy(str(directory / "config.cfg"), str(locale_destination_path / "config.cfg"))
         print("- foreign locale files updated")
 
-    # Remove silly .DS_Store files before creating the zip.file
-    for dirpath, _, _ in os.walk(modfiles_path):
-        DS_store_path = Path(dirpath, ".DS_Store")
-        DS_store_path.unlink(missing_ok=True)
-
-    # Rename modfiles folder temporarily so the zip generates correctly
-    full_mod_name = Path(MODNAME + "_" + new_mod_version)
-    tmp_modfiles_path = cwd / full_mod_name
-    modfiles_path.rename(tmp_modfiles_path)
+    # ZIP up release
     releases_path = cwd / "releases"
     releases_path.mkdir(exist_ok=True)
     zipfile_path = releases_path / full_mod_name
-    shutil.make_archive(str(zipfile_path), "zip", str(cwd), str(tmp_modfiles_path.parts[-1]))
-    tmp_modfiles_path.rename(modfiles_path)
+    shutil.make_archive(str(zipfile_path), "zip", str(cwd), str(tmp_release_path.parts[-1]))
+    shutil.rmtree(tmp_release_path)
     print("- zip archive created")
-
-    # Remove stealthily included files
-    tmp_license_path.unlink()
-    tmp_locale_license_path.unlink(missing_ok=True)
-    for locale in locale_list:
-        shutil.rmtree(str(modfiles_locale_path / locale))
-
-    # Commit release changes
-    repo.git.add("-A")
-    repo.git.commit(m="Release {}".format(new_mod_version))
-    print("Build complete\n")
-
-    # Start new dev cycle immediately
-    print("Preparing new development cycle ...")
 
     # Add a blank changelog entry for further development
     changelog_path = modfiles_path / "changelog.txt"
@@ -158,31 +134,10 @@ def build_release():
         changelog.writelines(old_changelog)
     print("- blank changelog entry added")
 
-    # Disable devmode
-    tmp_path = modfiles_path / "tmp"
-    control_file_path = modfiles_path / "control.lua"
-    with tmp_path.open("w") as new_file, control_file_path.open("r") as old_file:
-        for line in old_file:
-            line = re.sub("DEVMODE = false", "DEVMODE = true", line)
-            new_file.write(line)
-    control_file_path.unlink()
-    tmp_path.rename(control_file_path)
-    print("- devmode enabled")
-
-    # Create symlink to scenarios-folder
-    scenarios_path = cwd / "scenarios"
-    if scenarios_path.is_dir():
-        tmp_scenarios_path = modfiles_path / "scenarios"
-        tmp_scenarios_path.symlink_to(scenarios_path)
-        print("- scenarios symlink created")
-
-    # Commit new dev cycle changes
+    # Commit and push release changes
     repo.git.add("-A")
-    repo.git.commit(m="Start new development cycle")
-    print("Development cycle started\n")
-
-    # Push to Github
-    print("Pushing changes ...", end=" ", flush=True)
+    repo.git.commit(m="Release {}".format(new_mod_version))
+    print("Build complete! Pushing changes...", end=" ", flush=True)
     repo.git.push("origin")
     print("done")
 
