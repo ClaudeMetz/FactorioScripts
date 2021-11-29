@@ -9,7 +9,7 @@ cd ".."
 modname=${PWD##*/}
 
 # These paths are for a default macOS Factorio installation for the user 'claude'
-factoriopath="/Applications/Factorio.app"
+factoriopath="/Applications/factorio.app/Contents/MacOS/factorio"
 userdatapath="/Users/claude/Library/Application Support/factorio"
 
 echo "[1] New migration"

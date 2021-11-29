@@ -16,6 +16,10 @@ cwd = Path.cwd()
 repo = git.Repo(cwd)
 
 def take_screenshots():
+    if repo.is_dirty():
+        print("- repository is dirty, aborting")
+        return
+
     screenshotter_path =  cwd / "scenarios" / "screenshotter"
     if not screenshotter_path.is_dir():
         print("- no screenshotter scenario found, aborting")
@@ -29,13 +33,16 @@ def take_screenshots():
 
     # Run the screenshotting scenario, waiting for it to finish
     print("- running scenario...", end=" ", flush=True)
-    subprocess.run([
-        "/usr/bin/open", "-W", "-a", FACTORIO_PATH, "--args",
+    with subprocess.Popen(
+        [FACTORIO_PATH,
         "--load-scenario", "{}/screenshotter".format(MODNAME),
         "--config", str(screenshotter_path / "config.ini"),
         "--instrument-mod", MODNAME  # use the same mod as the instrument mod for simplicity
-        ]
-    )
+        ], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True
+    ) as factorio:
+        for line in factorio.stdout:
+            if line.strip() == "screenshotter_done":
+                factorio.terminate()
     print("done")
 
     # Crop screenshots according to the given dimensions
