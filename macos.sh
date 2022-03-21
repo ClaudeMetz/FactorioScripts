@@ -14,7 +14,7 @@ userdatapath="/Users/claude/Library/Application Support/factorio"
 
 echo "[1] New migration"
 echo "[2] Update versions"
-echo "[3] Build release"
+echo "[3] Publish release"
 echo "[4] Take screenshots"
 echo -e "Select script to run: \c"
 read choice

@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -7,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 import git  # type: ignore
+import requests
 
 # Script config
 MODNAME = sys.argv[1]
@@ -138,7 +140,7 @@ def build_release():
     releases_path = cwd / "releases"
     releases_path.mkdir(exist_ok=True)
     zipfile_path = releases_path / full_mod_name
-    shutil.make_archive(str(zipfile_path), "zip", str(cwd), str(tmp_release_path.parts[-1]))
+    archive_path = shutil.make_archive(str(zipfile_path), "zip", str(cwd), str(tmp_release_path.parts[-1]))
     shutil.rmtree(tmp_release_path)
     print("- zip archive created")
 
@@ -161,8 +163,26 @@ def build_release():
     repo.git.push("origin")
     print("done")
 
+    # Publish to mod portal
+    print("- publishing to mod portal...", end=" ", flush=True)
+    apikey = os.getenv("MOD_UPLOAD_API_KEY")
+    response = requests.post(
+        "https://mods.factorio.com/api/v2/mods/releases/init_upload",
+        data = {"mod": MODNAME},
+        headers = {"Authorization": f"Bearer {apikey}"}
+    )
+    if not response.ok:
+        raise RuntimeError(f"init_upload failed: {response.text}")
+
+    upload_url = response.json()["upload_url"]
+    with open(archive_path, "rb") as file:
+        response = requests.post(upload_url, files={"file": file})
+        if not response.ok:
+            raise RuntimeError(f"upload failed: {response.text}")
+    print("done")
+
 
 if __name__ == "__main__":
-    proceed = input(f"[{MODNAME}] Sure to build a release? (y/n): ")
+    proceed = input(f"[{MODNAME}] Sure to publish a release? (y/n): ")
     if proceed == "y":
         build_release()
