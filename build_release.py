@@ -33,6 +33,14 @@ def build_release():
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
     new_mod_version = ".".join(split_old_mod_version)
 
+    # Detect whether Phobos should be used or not
+    if (modfiles_path / "control.lua").is_file():
+        control_path = modfiles_path / "control.lua"
+        ignore_pattern = ""
+    elif (modfiles_path / "control.pho").is_file():
+        control_path = modfiles_path / "control.pho"
+        ignore_pattern = "*.pho"
+
     # Bump info.json version
     data["version"] = new_mod_version
     with info_json_path.open("w") as file:
@@ -70,22 +78,19 @@ def build_release():
     tmp_path.rename(new_changelog_path)
     print("- changelog updated for release")
 
-    # Detect whether Phobos should be used or not
-    if (modfiles_path / "control.lua").is_file():
-        control_path = modfiles_path / "control.lua"
-        ignore_pattern = ""
-    elif (modfiles_path / "control.pho").is_file():
-        control_path = modfiles_path / "control.pho"
-        ignore_pattern = "*.pho"
+    # Update README year if necessary
+    mod_license_path = cwd / "LICENSE.md"
+    current_year = datetime.today().year
+    notice_regex = r"Copyright \(c\) [0-9]{4}"
+    updated_license_text = re.sub(notice_regex, f"Copyright (c) {current_year}", mod_license_path.read_text())
+    mod_license_path.write_text(updated_license_text)
+    print("- updated LICENSE year")
 
     # Disable devmode for release
     tmp_control_path = modfiles_path / "tmp"
-    shutil.copyfile(control_path, tmp_control_path)  # copy as a backup
-    with control_path.open("w") as new_file, tmp_control_path.open("r") as old_file:
-        for line in old_file:
-            line = re.sub("DEVMODE = true", "DEVMODE = false", line)
-            new_file.write(line)
-    print("- devmode disabled temporarily")
+    shutil.copyfile(control_path, tmp_control_path)  # copy to restore after Phobos compilation
+    release_control_code = re.sub("DEVMODE = true", "DEVMODE = false", control_path.read_text())
+    control_path.write_text(release_control_code)
 
     # Copy relevant files to temporary folder
     full_mod_name = Path(MODNAME + "_" + new_mod_version)
@@ -109,7 +114,6 @@ def build_release():
 
     # Restore control.lua from backup
     tmp_control_path.rename(control_path)
-    print("- devmode re-enabled")
 
     # Include LICENSE file
     shutil.copy(str(cwd / "LICENSE.md"), str(tmp_release_path / "LICENSE.md"))
@@ -149,11 +153,8 @@ def build_release():
     new_changelog_entry = ("-----------------------------------------------------------------------------------------"
                            "----------\nVersion: 0.00.00\nDate: 00. 00. 0000\n  Features:\n    - \n  Changes:\n    - "
                            "\n  Bugfixes:\n    - \n\n")
-    with (changelog_path.open("r")) as changelog:
-        old_changelog = changelog.readlines()
-    old_changelog.insert(0, new_changelog_entry)
-    with (changelog_path.open("w")) as changelog:
-        changelog.writelines(old_changelog)
+    updated_changelog = new_changelog_entry + changelog_path.read_text()
+    changelog_path.write_text(updated_changelog)
     print("- blank changelog entry added")
 
     # Commit and push release changes
