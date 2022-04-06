@@ -3,7 +3,7 @@ import re
 import sys
 from pathlib import Path
 
-import git  # type: ignore
+import git
 
 # Script config
 MODNAME = sys.argv[1]
@@ -11,6 +11,7 @@ MODNAME = sys.argv[1]
 cwd = Path.cwd()
 repo = git.Repo(cwd / "..")
 
+# pylint: disable=too-many-locals, too-many-statements
 def update_versions():
     relevant_branch = repo.active_branch.name
     if relevant_branch == "master":
@@ -52,8 +53,8 @@ def update_versions():
     print("- info.json version updated")
 
     # Update the migration file filename
-    old_migration_path = (migrations_path / "migration_{}.lua".format(old_migration_version.replace(".", "_")))
-    old_migration_path.rename(migrations_path / "migration_{}.lua".format(new_mod_version.replace(".", "_")))
+    old_migration_path = migrations_path / f"migration_{old_migration_version.replace('.', '_')}.lua"
+    old_migration_path.rename(migrations_path / f"migration_{new_mod_version.replace('.', '_')}.lua")
     print("- migration filename updated")
 
     # Update the last entry in the masterlist

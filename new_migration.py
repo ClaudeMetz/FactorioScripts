@@ -9,6 +9,7 @@ MODNAME = sys.argv[1]
 
 cwd = Path.cwd()
 
+# pylint: disable=too-many-locals
 def new_migration():
     # Determine the next mod version
     with (cwd / "info.json").open("r") as file:
@@ -20,7 +21,7 @@ def new_migration():
     # Add a new migration file, targeted at the next version, using the blank 0_0_0 template
     migrations_path = cwd / "data" / "migrations"
     blank_migration_path = (migrations_path / "migration_0_0_0.lua")
-    new_migration_path = (migrations_path / "migration_{}.lua".format(new_mod_version.replace(".", "_")))
+    new_migration_path = migrations_path / f"migration_{new_mod_version.replace('.', '_')}.lua"
     shutil.copy(blank_migration_path, new_migration_path)
     print("- migration file created")
 

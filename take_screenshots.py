@@ -4,8 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import git  # type: ignore
-from PIL import Image  # type: ignore
+import git
+from PIL import Image
 
 # Script config
 MODNAME = sys.argv[1]
@@ -35,7 +35,7 @@ def take_screenshots():
     print("- running scenario...", end=" ", flush=True)
     with subprocess.Popen(
         [FACTORIO_PATH,
-        "--load-scenario", "{}/screenshotter".format(MODNAME),
+        "--load-scenario", f"{MODNAME}/screenshotter",
         "--config", str(screenshotter_path / "config.ini"),
         "--instrument-mod", MODNAME  # use the same mod as the instrument mod for simplicity
         ], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True
@@ -51,7 +51,7 @@ def take_screenshots():
         dimensions = json.load(file)
 
     for scene, corners in dimensions.items():
-        screenshot_path = script_output_path / "{}.png".format(scene)
+        screenshot_path = script_output_path / f"{scene}.png"
         image = Image.open(screenshot_path)
 
         cropped_img = image.crop((
@@ -60,7 +60,7 @@ def take_screenshots():
             corners["bottom_right"]["x"] + 15,
             corners["bottom_right"]["y"] + 15
         ))
-        cropped_img.save(cwd / "screenshots" / "{}.png".format(scene))
+        cropped_img.save(cwd / "screenshots" / f"{scene}.png")
     print("- screenshots updated")
 
     # Clean up script output
@@ -76,4 +76,4 @@ def take_screenshots():
 if __name__ == "__main__":
     proceed = input(f"[{MODNAME}] Sure to take screenshots? (y/n): ")
     if proceed == "y":
-      take_screenshots()
+        take_screenshots()

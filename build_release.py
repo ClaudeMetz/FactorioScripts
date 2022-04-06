@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import git  # type: ignore
+import git
 import requests
 
 # Script config
@@ -16,6 +16,7 @@ MODNAME = sys.argv[1]
 cwd = Path.cwd()
 repo = git.Repo(cwd)
 
+# pylint: disable=too-many-locals, too-many-statements, too-many-branches
 def build_release():
     if repo.active_branch.name != "master":
         print("- not on master branch, aborting")
@@ -67,9 +68,9 @@ def build_release():
                 new_file.write(line)
             else:
                 if "Version: 0.00.00" in line:
-                    new_file.write("Version: {}\n".format(new_mod_version))
+                    new_file.write(f"Version: {new_mod_version}\n")
                 elif "Date: 00. 00. 0000" in line:
-                    new_file.write("Date: {}\n".format(datetime.today().strftime("%d. %m. %Y")))
+                    new_file.write(f"Date: {datetime.today().strftime('%d. %m. %Y')}\n")
                 elif not re.match(r"    -( )?\n", line) and not line in empty_categories:
                     new_file.write(line)
 
@@ -109,7 +110,7 @@ def build_release():
                 "--output", tmp_release_path,
                 "--profile", "release",
                 "--use-load"
-            ], cwd=phobos_path
+            ], cwd=phobos_path, check=True
         )
 
     # Restore control.lua from backup
@@ -159,7 +160,7 @@ def build_release():
 
     # Commit and push release changes
     repo.git.add("-A")
-    repo.git.commit(m="Release {}".format(new_mod_version))
+    repo.git.commit(m=f"Release {new_mod_version}")
     print("- pushing changes...", end=" ", flush=True)
     repo.git.push("origin")
     print("done")
