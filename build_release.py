@@ -13,7 +13,7 @@ import requests
 # Script config
 MODNAME = sys.argv[1]
 
-cwd = Path.cwd()
+cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = git.Repo(cwd)
 
 # pylint: disable=too-many-locals, too-many-statements, too-many-branches

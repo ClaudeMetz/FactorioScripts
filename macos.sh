@@ -3,14 +3,14 @@
 # macOS script to select and run various convenience scripts
 # It runs the selected Python script in the appropriate directory
 
+factoriopath="/Applications/factorio.app/Contents/MacOS/factorio"
+userdatapath="~/Library/Application Support/factorio"
+
 origin=$(pwd)
 
 cd ".."
-modname=${PWD##*/}
-
-# These paths are for a default macOS Factorio installation for the user 'claude'
-factoriopath="/Applications/factorio.app/Contents/MacOS/factorio"
-userdatapath="/Users/claude/Library/Application Support/factorio"
+modname=${PWD##*/}  # grab the mod's name via the directory name
+cd $origin
 
 echo "[1] New migration"
 echo "[2] Update versions"
@@ -21,21 +21,18 @@ read choice
 
 if [ $choice -eq 1 ]
 then
-    cd "modfiles/"
-    script="${origin}/new_migration.py"
+    script="new_migration.py"
 elif [ $choice -eq 2 ]
 then
-    cd "modfiles/"
-    script="${origin}/update_versions.py"
+    script="update_versions.py"
 elif [ $choice -eq 3 ]
 then
-    script="${origin}/build_release.py"
+    script="build_release.py"
 elif [ $choice -eq 4 ]
 then
-    script="${origin}/take_screenshots.py"
+    script="take_screenshots.py"
 else
     exit
 fi
 
 python3 "$script" $modname "$factoriopath" "$userdatapath"
-cd $origin

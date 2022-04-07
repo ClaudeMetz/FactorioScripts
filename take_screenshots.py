@@ -12,7 +12,7 @@ MODNAME = sys.argv[1]
 FACTORIO_PATH = sys.argv[2]
 USERDATA_PATH = sys.argv[3]
 
-cwd = Path.cwd()
+cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = git.Repo(cwd)
 
 def take_screenshots():

@@ -7,19 +7,20 @@ from pathlib import Path
 # Script config
 MODNAME = sys.argv[1]
 
-cwd = Path.cwd()
+cwd = Path.cwd() / ".."  # back out of scripts folder
 
 # pylint: disable=too-many-locals
 def new_migration():
     # Determine the next mod version
-    with (cwd / "info.json").open("r") as file:
+    modfiles_path = cwd / "modfiles"
+    with (modfiles_path / "info.json").open("r") as file:
         split_old_mod_version = json.load(file)["version"].split(".")
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
     new_mod_version = ".".join(split_old_mod_version)
     print("- next version determined")
 
     # Add a new migration file, targeted at the next version, using the blank 0_0_0 template
-    migrations_path = cwd / "data" / "migrations"
+    migrations_path = modfiles_path / "data" / "migrations"
     blank_migration_path = (migrations_path / "migration_0_0_0.lua")
     new_migration_path = migrations_path / f"migration_{new_mod_version.replace('.', '_')}.lua"
     shutil.copy(blank_migration_path, new_migration_path)
@@ -35,7 +36,7 @@ def new_migration():
     print("- masterlist updated")
 
     # Update migrator to include the new migration (a bit janky)
-    migrator_path = cwd / "data" / "handlers" / "migrator.lua"
+    migrator_path = modfiles_path / "data" / "handlers" / "migrator.lua"
     with (migrator_path.open("r")) as migrator:
         migrator_lines = migrator.readlines()
 

@@ -8,8 +8,8 @@ import git
 # Script config
 MODNAME = sys.argv[1]
 
-cwd = Path.cwd()
-repo = git.Repo(cwd / "..")
+cwd = Path.cwd() / ".."  # back out of scripts folder
+repo = git.Repo(cwd)
 
 # pylint: disable=too-many-locals, too-many-statements
 def update_versions():
@@ -22,7 +22,8 @@ def update_versions():
         return
 
     # Determine the old migration version on this branch
-    migrations_path = cwd / "data" / "migrations"
+    modfiles_path = cwd / "modfiles"
+    migrations_path = modfiles_path / "data" / "migrations"
     masterlist_path = migrations_path / "masterlist.json"
     with masterlist_path.open("r") as file:
         masterlist = json.load(file)
@@ -31,7 +32,7 @@ def update_versions():
 
     # Determine the current and next mod version on master
     repo.git.checkout("master")
-    with (cwd / "info.json").open("r") as file:
+    with (modfiles_path / "info.json").open("r") as file:
         current_mod_version = json.load(file)["version"]
     split_current_mod_version = current_mod_version.split(".")
     split_current_mod_version[-1] = str(int(split_current_mod_version[-1]) + 1)  # update version to the new one
@@ -44,7 +45,7 @@ def update_versions():
         return
 
     # Update info.json
-    info_json_path = cwd / "info.json"
+    info_json_path = modfiles_path / "info.json"
     with info_json_path.open("r") as file:
         data = json.load(file)
     data["version"] = current_mod_version
@@ -64,7 +65,7 @@ def update_versions():
     print("- masterlist updated")
 
     # Update migrator to include the new migration (a bit janky)
-    migrator_path = cwd / "data" / "handlers" / "migrator.lua"
+    migrator_path = modfiles_path / "data" / "handlers" / "migrator.lua"
     with (migrator_path.open("r")) as migrator:
         migrator_lines = migrator.readlines()
 
