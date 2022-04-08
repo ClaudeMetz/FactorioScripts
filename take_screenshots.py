@@ -11,12 +11,16 @@ from PIL import Image
 MODNAME = sys.argv[1]
 FACTORIO_PATH = sys.argv[2]
 USERDATA_PATH = sys.argv[3]
+RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = git.Repo(cwd)
 
 def take_screenshots():
-    if repo.is_dirty():
+    if RELEASE and repo.active_branch.name != "master":
+        print("- not on master branch, aborting")
+        return
+    if RELEASE and repo.is_dirty():
         print("- repository is dirty, aborting")
         return
 

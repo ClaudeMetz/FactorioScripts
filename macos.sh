@@ -35,4 +35,4 @@ else
     exit
 fi
 
-python3 "$script" $modname "$factoriopath" "$userdatapath"
+python3 "$script" $modname "$factoriopath" "$userdatapath" $1

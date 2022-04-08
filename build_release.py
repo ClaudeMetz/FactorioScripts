@@ -12,16 +12,17 @@ import requests
 
 # Script config
 MODNAME = sys.argv[1]
+RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = git.Repo(cwd)
 
 # pylint: disable=too-many-locals, too-many-statements, too-many-branches
-def build_release():
-    if repo.active_branch.name != "master":
+def publish_release():
+    if RELEASE and repo.active_branch.name != "master":
         print("- not on master branch, aborting")
         return
-    if repo.is_dirty():
+    if RELEASE and repo.is_dirty():
         print("- repository is dirty, aborting")
         return
 
@@ -158,33 +159,36 @@ def build_release():
     changelog_path.write_text(updated_changelog)
     print("- blank changelog entry added")
 
-    # Commit and push release changes
+    # Commit changes
     repo.git.add("-A")
     repo.git.commit(m=f"Release {new_mod_version}")
-    print("- pushing changes...", end=" ", flush=True)
-    repo.git.push("origin")
-    print("done")
+    print("- changes commited")
 
-    # Publish to mod portal
-    print("- publishing to mod portal...", end=" ", flush=True)
-    apikey = os.getenv("MOD_UPLOAD_API_KEY")
-    response = requests.post(
-        "https://mods.factorio.com/api/v2/mods/releases/init_upload",
-        data = {"mod": MODNAME},
-        headers = {"Authorization": f"Bearer {apikey}"}
-    )
-    if not response.ok:
-        raise RuntimeError(f"init_upload failed: {response.text}")
+    if RELEASE:  # Push to Github
+        print("- pushing to Github...", end=" ", flush=True)
+        repo.git.push("origin")
+        print("done")
 
-    upload_url = response.json()["upload_url"]
-    with open(archive_path, "rb") as file:
-        response = requests.post(upload_url, files={"file": file})
+    if RELEASE:  # Publish to mod portal
+        print("- publishing to mod portal...", end=" ", flush=True)
+        apikey = os.getenv("MOD_UPLOAD_API_KEY")
+        response = requests.post(
+            "https://mods.factorio.com/api/v2/mods/releases/init_upload",
+            data = {"mod": MODNAME},
+            headers = {"Authorization": f"Bearer {apikey}"}
+        )
         if not response.ok:
-            raise RuntimeError(f"upload failed: {response.text}")
-    print("done")
+            raise RuntimeError(f"init_upload failed: {response.text}")
+
+        upload_url = response.json()["upload_url"]
+        with open(archive_path, "rb") as file:
+            response = requests.post(upload_url, files={"file": file})
+            if not response.ok:
+                raise RuntimeError(f"upload failed: {response.text}")
+        print("done")
 
 
 if __name__ == "__main__":
     proceed = input(f"[{MODNAME}] Sure to publish a release? (y/n): ")
     if proceed == "y":
-        build_release()
+        publish_release()
