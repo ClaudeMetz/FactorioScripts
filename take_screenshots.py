@@ -2,7 +2,7 @@ import json
 import shutil
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import git
 from PIL import Image
@@ -10,7 +10,7 @@ from PIL import Image
 # Script config
 MODNAME = sys.argv[1]
 FACTORIO_PATH = sys.argv[2]
-USERDATA_PATH = sys.argv[3]
+USERDATA_PATH = PosixPath(sys.argv[3]).expanduser()
 RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
@@ -30,7 +30,7 @@ def take_screenshots():
         return
 
     # Overwrite mod-list.json with the one found in the scenarios folder
-    current_modlist_path = Path(USERDATA_PATH) / "mods" / "mod-list.json"
+    current_modlist_path = USERDATA_PATH / "mods" / "mod-list.json"
     current_modlist_path.unlink(missing_ok=True)
     shutil.copy(str(screenshotter_path / "mod-list.json"), str(current_modlist_path))
     print("- mod-list.json replaced")
@@ -72,8 +72,8 @@ def take_screenshots():
     print("- script-output removed")
 
     # Commit new screenshots
-    repo.git.add("-A")
-    repo.git.commit(m="Update screenshots")
+    #repo.git.add("-A")
+    #repo.git.commit(m="Update screenshots")
     print("- changes committed")
 
 
