@@ -72,8 +72,8 @@ def take_screenshots():
     print("- script-output removed")
 
     # Commit new screenshots
-    #repo.git.add("-A")
-    #repo.git.commit(m="Update screenshots")
+    repo.git.add("-A")
+    repo.git.commit(m="Update screenshots")
     print("- changes committed")
 
 
