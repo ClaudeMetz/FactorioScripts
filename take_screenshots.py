@@ -49,6 +49,12 @@ def take_screenshots():
                 factorio.terminate()
     print("done")
 
+    # Clear previous screenshots
+    screenshots_path = cwd / "screenshots"
+    shutil.rmtree(screenshots_path)
+    screenshots_path.mkdir()
+    print("- previous screenshots cleared")
+
     # Crop screenshots according to the given dimensions
     script_output_path = Path(USERDATA_PATH, "script-output")
     with (script_output_path / "dimensions.json").open("r") as file:
@@ -64,7 +70,7 @@ def take_screenshots():
             corners["bottom_right"]["x"] + 15,
             corners["bottom_right"]["y"] + 15
         ))
-        cropped_img.save(cwd / "screenshots" / f"{scene}.png")
+        cropped_img.save(screenshots_path / f"{scene}.png")
     print("- screenshots updated")
 
     # Clean up script output
