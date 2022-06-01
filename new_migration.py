@@ -9,8 +9,7 @@ MODNAME = sys.argv[1]
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
 
-# pylint: disable=too-many-locals
-def new_migration():
+def new_migration() -> None:
     # Determine the next mod version
     modfiles_path = cwd / "modfiles"
     with (modfiles_path / "info.json").open("r") as file:

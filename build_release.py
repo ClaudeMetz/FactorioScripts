@@ -7,18 +7,17 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import git
 import requests
+from git import Repo
 
 # Script config
 MODNAME = sys.argv[1]
 RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
-repo = git.Repo(cwd)
+repo = Repo(cwd)
 
-# pylint: disable=too-many-locals, too-many-statements, too-many-branches
-def publish_release():
+def publish_release() -> None:
     if RELEASE and repo.active_branch.name != "master":
         print("- not on master branch, aborting")
         return
@@ -56,7 +55,7 @@ def publish_release():
         # Find the strings corresponding to eventual empty categories (this is silly)
         empty_categories = re.findall(r"  [\w]+:\n    - ?\n", old_file.read())
         empty_categories = [(line.split("\n")[0] + "\n") for line in empty_categories]
-        empty_categories = dict.fromkeys(empty_categories, 1)
+        empty_category_dict = dict.fromkeys(empty_categories, 1)
         old_file.seek(0)  # reset seekhead after file.read()
 
         # Rewrite the file, incorporating the necessary changes
@@ -72,7 +71,7 @@ def publish_release():
                     new_file.write(f"Version: {new_mod_version}\n")
                 elif "Date: 00. 00. 0000" in line:
                     new_file.write(f"Date: {datetime.today().strftime('%d. %m. %Y')}\n")
-                elif not re.match(r"    -( )?\n", line) and not line in empty_categories:
+                elif not re.match(r"    -( )?\n", line) and not line in empty_category_dict:
                     new_file.write(line)
 
     old_changelog_path.unlink()

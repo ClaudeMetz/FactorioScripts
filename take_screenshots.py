@@ -4,8 +4,8 @@ import subprocess
 import sys
 from pathlib import Path, PosixPath
 
-import git
-from PIL import Image
+from git import Repo
+from PIL import Image  # type: ignore
 
 # Script config
 MODNAME = sys.argv[1]
@@ -14,9 +14,9 @@ USERDATA_PATH = PosixPath(sys.argv[3]).expanduser()
 RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
-repo = git.Repo(cwd)
+repo = Repo(cwd)
 
-def take_screenshots():
+def take_screenshots() -> None:
     if RELEASE and repo.active_branch.name != "master":
         print("- not on master branch, aborting")
         return
@@ -44,9 +44,10 @@ def take_screenshots():
         "--instrument-mod", MODNAME  # use the same mod as the instrument mod for simplicity
         ], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True
     ) as factorio:
-        for line in factorio.stdout:
-            if line.strip() == "screenshotter_done":
-                factorio.terminate()
+        if factorio.stdout is not None:
+            for line in factorio.stdout:
+                if line.strip() == "screenshotter_done":
+                    factorio.terminate()
     print("done")
 
     # Clear previous screenshots

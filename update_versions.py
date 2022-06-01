@@ -3,17 +3,16 @@ import re
 import sys
 from pathlib import Path
 
-import git
+from git import Repo
 
 # Script config
 MODNAME = sys.argv[1]
 RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
-repo = git.Repo(cwd)
+repo = Repo(cwd)
 
-# pylint: disable=too-many-locals, too-many-statements
-def update_versions():
+def update_versions() -> None:
     relevant_branch = repo.active_branch.name
     if RELEASE and relevant_branch == "master":
         print("- on master branch, aborting")
