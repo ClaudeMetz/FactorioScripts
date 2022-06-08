@@ -186,6 +186,8 @@ def publish_release() -> None:
                 raise RuntimeError(f"upload failed: {response.text}")
         print("done")
 
+    print(f"Version {new_mod_version} released!")
+
 
 if __name__ == "__main__":
     proceed = input(f"[{MODNAME}] Sure to publish a release? (y/n): ")
