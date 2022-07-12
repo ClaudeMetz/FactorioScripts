@@ -1,9 +1,11 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path, PosixPath
 
+import requests
 from git import Repo
 from PIL import Image  # type: ignore
 
@@ -89,7 +91,37 @@ def take_screenshots() -> None:
     print("- changes committed")
 
     if RELEASE:
-        pass
+        IMAGE_API_URL = "https://mods.factorio.com/api/experimental/mods/images"
+        apikey = os.getenv("MOD_EDIT_API_KEY")
+
+        # Remove old mod portal images
+        print("- removing old mod portal images...", end=" ", flush=True)
+        response = requests.post(
+            f"{IMAGE_API_URL}/edit",
+            data = {"mod": MODNAME, "images": []},
+            headers = {"Authorization": f"Bearer {apikey}"}
+        )
+        if not response.ok:
+            raise RuntimeError(f"edit failed: {response.text}")
+        print("done")
+
+        # Upload new mod portal images
+        print("- uploading to mod portal...", end=" ", flush=True)
+        for screenshot_path in sorted(screenshots_path.iterdir()):
+            response = requests.post(
+                f"{IMAGE_API_URL}/add",
+                data = {"mod": MODNAME},
+                headers = {"Authorization": f"Bearer {apikey}"}
+            )
+            if not response.ok:
+                raise RuntimeError(f"init_upload failed: {response.text}")
+
+            upload_url = response.json()["upload_url"]
+            with open(screenshot_path, "rb") as file:
+                response = requests.post(upload_url, files={"image": file})
+                if not response.ok:
+                    raise RuntimeError(f"upload failed: {response.text}")
+        print("done")
 
 
 if __name__ == "__main__":
