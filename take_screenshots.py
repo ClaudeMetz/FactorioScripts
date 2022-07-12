@@ -50,18 +50,23 @@ def take_screenshots() -> None:
                     factorio.terminate()
     print("done")
 
+    # Load metadata from generated JSON file
+    script_output_path = Path(USERDATA_PATH, "script-output")
+    with (script_output_path / "metadata.json").open("r") as file:
+        metadata = json.load(file)
+        frame_corners = metadata["frame_corners"]
+        protected_names = [f"{name}.png" for name in metadata["protected_names"]]
+    print("- metadata loaded")
+
     # Clear previous screenshots
     screenshots_path = cwd / "screenshots"
-    shutil.rmtree(screenshots_path)
-    screenshots_path.mkdir()
+    for screenshot in screenshots_path.iterdir():
+        if screenshot.name not in protected_names:
+            screenshot.unlink()
     print("- previous screenshots cleared")
 
     # Crop screenshots according to the given dimensions
-    script_output_path = Path(USERDATA_PATH, "script-output")
-    with (script_output_path / "dimensions.json").open("r") as file:
-        dimensions = json.load(file)
-
-    for scene, corners in dimensions.items():
+    for scene, corners in frame_corners.items():
         screenshot_path = script_output_path / f"{scene}.png"
         image = Image.open(screenshot_path)
 
@@ -72,7 +77,7 @@ def take_screenshots() -> None:
             corners["bottom_right"]["y"] + 15
         ))
         cropped_img.save(screenshots_path / f"{scene}.png")
-    print("- screenshots updated")
+    print("- screenshots cropped and saved")
 
     # Clean up script output
     shutil.rmtree(script_output_path)
@@ -82,6 +87,9 @@ def take_screenshots() -> None:
     repo.git.add("-A")
     repo.git.commit(m="Update screenshots")
     print("- changes committed")
+
+    if RELEASE:
+        pass
 
 
 if __name__ == "__main__":
