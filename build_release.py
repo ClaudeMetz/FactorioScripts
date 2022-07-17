@@ -5,19 +5,22 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import requests
 from git import Repo
+from PIL import Image  # type: ignore
 
 # Script config
 MODNAME = sys.argv[1]
+FACTORIO_PATH = sys.argv[2]
+USERDATA_PATH = PosixPath(sys.argv[3]).expanduser()
 RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = Repo(cwd)
 
-def publish_release() -> None:
+def publish_release(take_screenshots: bool) -> None:
     if RELEASE and repo.active_branch.name != "master":
         print("- not on master branch, aborting")
         return
@@ -158,33 +161,117 @@ def publish_release() -> None:
     changelog_path.write_text(updated_changelog)
     print("- blank changelog entry added")
 
+    # Run screenshotter if requested and possible
+    screenshotter_path =  cwd / "scenarios" / "screenshotter"
+    if take_screenshots and screenshotter_path.is_dir():
+        # Overwrite mod-list.json with the one found in the scenarios folder
+        current_modlist_path = USERDATA_PATH / "mods" / "mod-list.json"
+        current_modlist_path.unlink(missing_ok=True)
+        shutil.copy(str(screenshotter_path / "mod-list.json"), str(current_modlist_path))
+        print("- mod-list.json replaced")
+
+        # Run the screenshotting scenario, waiting for it to signal it's done
+        print("- taking screenshots...", end=" ", flush=True)
+        with subprocess.Popen(
+            [FACTORIO_PATH,
+            "--load-scenario", f"{MODNAME}/screenshotter",
+            "--config", str(screenshotter_path / "config.ini"),
+            "--instrument-mod", MODNAME  # use the same mod as the instrument mod for simplicity
+            ], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True
+        ) as factorio:
+            if factorio.stdout is not None:
+                for line in factorio.stdout:
+                    if line.strip() == "screenshotter_done":
+                        factorio.terminate()
+        print("done")
+
+        # Load metadata from generated JSON file
+        script_output_path = Path(USERDATA_PATH, "script-output")
+        with (script_output_path / "metadata.json").open("r") as file:
+            metadata = json.load(file)
+            frame_corners = metadata["frame_corners"]
+            protected_names = [f"{name}.png" for name in metadata["protected_names"]]
+        print("- metadata loaded")
+
+        # Clear previous screenshots
+        screenshots_path = cwd / "screenshots"
+        for screenshot in screenshots_path.iterdir():
+            if screenshot.name not in protected_names:
+                screenshot.unlink()
+        print("- previous screenshots cleared")
+
+        # Crop screenshots according to the given dimensions
+        for scene, corners in frame_corners.items():
+            screenshot_path = script_output_path / f"{scene}.png"
+            image = Image.open(screenshot_path)
+
+            cropped_img = image.crop((
+                corners["top_left"]["x"] - 15,
+                corners["top_left"]["y"] - 15,
+                corners["bottom_right"]["x"] + 15,
+                corners["bottom_right"]["y"] + 15
+            ))
+            cropped_img.save(screenshots_path / f"{scene}.png")
+        print("- screenshots cropped and saved")
+
+        # Clean up script output
+        shutil.rmtree(script_output_path)
+        print("- script-output removed")
+
     # Commit changes
     repo.git.add("-A")
     repo.git.commit(m=f"Release {new_mod_version}")
     print("- changes commited")
 
-    if RELEASE:  # Push to Github
+    if RELEASE:
+        # Push to Github
         print("- pushing to Github...", end=" ", flush=True)
         repo.git.push("origin")
         print("done")
 
-    if RELEASE:  # Publish to mod portal
-        print("- publishing to mod portal...", end=" ", flush=True)
-        apikey = os.getenv("MOD_UPLOAD_API_KEY")
-        response = requests.post(
-            "https://mods.factorio.com/api/v2/mods/releases/init_upload",
-            data = {"mod": MODNAME},
-            headers = {"Authorization": f"Bearer {apikey}"}
-        )
-        if not response.ok:
-            raise RuntimeError(f"init_upload failed: {response.text}")
-
-        upload_url = response.json()["upload_url"]
-        with open(archive_path, "rb") as file:
-            response = requests.post(upload_url, files={"file": file})
+        def upload_data(upload_url: str, api_key: str, file_path: str, dataset_name: str) -> None:
+            response = requests.post(
+                upload_url,
+                data = {"mod": MODNAME},
+                headers = {"Authorization": f"Bearer {api_key}"}
+            )
             if not response.ok:
-                raise RuntimeError(f"upload failed: {response.text}")
+                raise RuntimeError(f"init_upload failed: {response.text}")
+
+            upload_url = response.json()["upload_url"]
+            with open(file_path, "rb") as file:
+                response = requests.post(upload_url, files={dataset_name: file})
+                if not response.ok:
+                    raise RuntimeError(f"upload failed: {response.text}")
+
+        # Publish to mod portal
+        print("- publishing to mod portal...", end=" ", flush=True)
+        UPLOAD_API_URL = "https://mods.factorio.com/api/v2/mods/releases/init_upload"
+        UPLOAD_API_KEY = os.getenv("MOD_UPLOAD_API_KEY") or ""
+        upload_data(UPLOAD_API_URL, UPLOAD_API_KEY, archive_path, "file")
         print("done")
+
+        # Update mod portal screenshots if requested
+        if take_screenshots:
+            IMAGE_API_URL = "https://mods.factorio.com/api/experimental/mods/images"
+            EDIT_API_KEY = os.getenv("MOD_EDIT_API_KEY") or ""
+
+            # Remove old mod portal images
+            print("- removing old mod portal images...", end=" ", flush=True)
+            response = requests.post(
+                f"{IMAGE_API_URL}/edit",
+                data = {"mod": MODNAME, "images": []},
+                headers = {"Authorization": f"Bearer {EDIT_API_KEY}"}
+            )
+            if not response.ok:
+                raise RuntimeError(f"edit failed: {response.text}")
+            print("done")
+
+            # Upload new mod portal images
+            print("- uploading to mod portal...", end=" ", flush=True)
+            for screenshot_path in sorted(screenshots_path.iterdir()):
+                upload_data(f"{IMAGE_API_URL}/add", EDIT_API_KEY, str(screenshot_path), "image")
+            print("done")
 
     print(f"Version {new_mod_version} released!")
 
@@ -192,4 +279,5 @@ def publish_release() -> None:
 if __name__ == "__main__":
     proceed = input(f"[{MODNAME}] Sure to publish a release? (y/n): ")
     if proceed == "y":
-        publish_release()
+        screenshots = input(f"[{MODNAME}] Retake screenshots as well? (y/n): ")
+        publish_release(screenshots == "y")

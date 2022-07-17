@@ -15,7 +15,6 @@ cd $origin
 echo "[1] New migration"
 echo "[2] Update versions"
 echo "[3] Publish release"
-echo "[4] Take screenshots"
 echo -e "Select script to run: \c"
 read choice
 
@@ -28,9 +27,6 @@ then
 elif [ $choice -eq 3 ]
 then
     script="build_release.py"
-elif [ $choice -eq 4 ]
-then
-    script="take_screenshots.py"
 else
     exit
 fi
