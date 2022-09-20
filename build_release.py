@@ -253,7 +253,7 @@ def publish_release(take_screenshots: bool) -> None:
 
         # Update mod portal screenshots if requested
         if take_screenshots:
-            IMAGE_API_URL = "https://mods.factorio.com/api/experimental/mods/images"
+            IMAGE_API_URL = "https://mods.factorio.com/api/v2/mods/images"
             EDIT_API_KEY = os.getenv("MOD_EDIT_API_KEY") or ""
 
             # Remove old mod portal images
