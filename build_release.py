@@ -93,7 +93,7 @@ def publish_release(take_screenshots: bool) -> None:
     # Disable devmode for release
     tmp_control_path = modfiles_path / "tmp"
     shutil.copyfile(control_path, tmp_control_path)  # copy to restore after Phobos compilation
-    release_control_code = re.sub("DEVMODE = true", "DEVMODE = false", control_path.read_text())
+    release_control_code = re.sub("DEV_ACTIVE = true", "DEV_ACTIVE = false", control_path.read_text())
     control_path.write_text(release_control_code)
 
     # Copy relevant files to temporary folder
