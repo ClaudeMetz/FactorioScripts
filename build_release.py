@@ -188,16 +188,13 @@ def publish_release(take_screenshots: bool) -> None:
         # Load metadata from generated JSON file
         script_output_path = Path(USERDATA_PATH, "script-output")
         with (script_output_path / "metadata.json").open("r") as file:
-            metadata = json.load(file)
-            frame_corners = metadata["frame_corners"]
-            protected_names = [f"{name}.png" for name in metadata["protected_names"]]
+            frame_corners = json.load(file)["frame_corners"]
         print("- metadata loaded")
 
         # Clear previous screenshots
         screenshots_path = cwd / "screenshots"
         for screenshot in screenshots_path.iterdir():
-            if screenshot.name not in protected_names:
-                screenshot.unlink()
+            screenshot.unlink()
         print("- previous screenshots cleared")
 
         # Crop screenshots according to the given dimensions
