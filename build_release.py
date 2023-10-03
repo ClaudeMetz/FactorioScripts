@@ -110,6 +110,7 @@ def publish_release(take_screenshots: bool) -> None:
         subprocess.run([
                 "./lua", "--", "main.lua",
                 "--source", modfiles_path,
+                "--source-name", f"'@__{MODNAME}__/?'",
                 "--output", tmp_release_path,
                 "--profile", "release",
                 "--use-load"
