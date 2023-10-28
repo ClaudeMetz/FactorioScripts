@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import json
 import os
 import re
@@ -11,14 +13,14 @@ import requests
 from git import Repo
 from PIL import Image  # type: ignore
 
-# Script config
-MODNAME = sys.argv[1]
-FACTORIO_PATH = sys.argv[2]
-USERDATA_PATH = PosixPath(sys.argv[3]).expanduser()
-RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
-
 cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = Repo(cwd)
+
+# Script config
+MODNAME = cwd.resolve().name
+FACTORIO_PATH = "/Applications/factorio.app/Contents/MacOS/factorio"
+USERDATA_PATH = PosixPath("~/Library/Application Support/factorio").expanduser()
+RELEASE = (len(sys.argv) == 2 and sys.argv[1] == "--release")
 
 def publish_release(take_screenshots: bool) -> None:
     if RELEASE and repo.active_branch.name != "master":
@@ -275,7 +277,7 @@ def publish_release(take_screenshots: bool) -> None:
 
 
 if __name__ == "__main__":
-    proceed = input(f"[{MODNAME}] Sure to publish a release? (y/n): ")
+    proceed = input("Sure to publish a release? (y/n): ")
     if proceed == "y":
-        screenshots = input(f"[{MODNAME}] Retake screenshots as well? (y/n): ")
+        screenshots = input("Retake screenshots as well? (y/n): ")
         publish_release(screenshots == "y")

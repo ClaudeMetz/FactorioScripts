@@ -1,23 +1,20 @@
+#!/usr/bin/env python3
+
 import json
 import re
-import sys
 from pathlib import Path
 
 from git import Repo
-
-# Script config
-MODNAME = sys.argv[1]
-RELEASE = (len(sys.argv) == 5 and sys.argv[4] == "--release")
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = Repo(cwd)
 
 def update_versions() -> None:
     relevant_branch = repo.active_branch.name
-    if RELEASE and relevant_branch == "master":
+    if relevant_branch == "master":
         print("- on master branch, aborting")
         return
-    if RELEASE and repo.is_dirty():
+    if repo.is_dirty():
         print("- repository is dirty, aborting")
         return
 
@@ -94,6 +91,6 @@ def update_versions() -> None:
 
 
 if __name__ == "__main__":
-    proceed = input(f"[{MODNAME}] Sure to update mod and migration versions? (y/n): ")
+    proceed = input("Sure to update mod and migration versions? (y/n): ")
     if proceed == "y":
         update_versions()

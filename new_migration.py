@@ -1,11 +1,9 @@
+#!/usr/bin/env python3
+
 import json
 import re
 import shutil
-import sys
 from pathlib import Path
-
-# Script config
-MODNAME = sys.argv[1]
 
 cwd = Path.cwd() / ".."  # back out of scripts folder
 
@@ -59,6 +57,6 @@ def new_migration() -> None:
 
 
 if __name__ == "__main__":
-    proceed = input(f"[{MODNAME}] Sure to add a new migration? (y/n): ")
+    proceed = input("Sure to add a new migration? (y/n): ")
     if proceed == "y":
         new_migration()
