@@ -39,14 +39,6 @@ def publish_release(take_screenshots: bool) -> None:
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
     new_mod_version = ".".join(split_old_mod_version)
 
-    # Detect whether Phobos should be used or not
-    if (modfiles_path / "control.lua").is_file():
-        control_path = modfiles_path / "control.lua"
-        ignore_pattern = ""
-    elif (modfiles_path / "control.pho").is_file():
-        control_path = modfiles_path / "control.pho"
-        ignore_pattern = "*.pho"
-
     # Bump info.json version
     data["version"] = new_mod_version
     with info_json_path.open("w") as file:
@@ -76,7 +68,7 @@ def publish_release(take_screenshots: bool) -> None:
                     new_file.write(f"Version: {new_mod_version}\n")
                 elif "Date: 00. 00. 0000" in line:
                     new_file.write(f"Date: {datetime.today().strftime('%d. %m. %Y')}\n")
-                elif not re.match(r"    -( )?\n", line) and not line in empty_category_dict:
+                elif not re.match(r"    -( )?\n", line) and line not in empty_category_dict:
                     new_file.write(line)
 
     old_changelog_path.unlink()
@@ -93,31 +85,17 @@ def publish_release(take_screenshots: bool) -> None:
     print("- updated LICENSE year")
 
     # Disable devmode for release
-    tmp_control_path = modfiles_path / "tmp"
-    shutil.copyfile(control_path, tmp_control_path)  # copy to restore after Phobos compilation
+    control_path, tmp_control_path = modfiles_path / "control.lua", modfiles_path / "tmp"
+    shutil.copyfile(control_path, tmp_control_path)  # copy to restore afterwards
     release_control_code = re.sub("DEV_ACTIVE = true", "DEV_ACTIVE = false", control_path.read_text())
     control_path.write_text(release_control_code)
 
     # Copy relevant files to temporary folder
     full_mod_name = Path(MODNAME + "_" + new_mod_version)
     tmp_release_path = cwd / full_mod_name
-    ignore_patterns = shutil.ignore_patterns('.*', 'scenarios', 'tmp', ignore_pattern)
+    ignore_patterns = shutil.ignore_patterns('.*', 'scenarios', 'tmp', '')
     shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
     print("- relevant files copied")
-
-    # Build with Phobos if necessary
-    if ignore_pattern == "*.pho":
-        phobos_path = cwd / "scripts" / "phobos_osx"
-        print("- building with phobos...", end=" ", flush=True)
-        subprocess.run([
-                "./lua", "--", "main.lua",
-                "--source", modfiles_path,
-                "--source-name", f"'@__{MODNAME}__/?'",
-                "--output", tmp_release_path,
-                "--profile", "release",
-                "--use-load"
-            ], cwd=phobos_path, check=True
-        )
 
     # Restore control.lua from backup
     tmp_control_path.rename(control_path)
