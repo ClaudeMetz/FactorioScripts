@@ -21,6 +21,7 @@ MODNAME = cwd.resolve().name
 FACTORIO_PATH = "/Applications/factorio.app/Contents/MacOS/factorio"
 USERDATA_PATH = PosixPath("~/Library/Application Support/factorio").expanduser()
 RELEASE = (len(sys.argv) == 2 and sys.argv[1] == "--release")
+LOCAL = (len(sys.argv) == 2 and sys.argv[1] == "--local")
 
 def publish_release(take_screenshots: bool) -> None:
     if RELEASE and repo.active_branch.name != "master":
@@ -91,7 +92,7 @@ def publish_release(take_screenshots: bool) -> None:
     control_path.write_text(release_control_code)
 
     # Copy relevant files to temporary folder
-    full_mod_name = Path(MODNAME + "_" + new_mod_version)
+    full_mod_name = Path(f"{MODNAME}_{new_mod_version}")
     tmp_release_path = cwd / full_mod_name
     ignore_patterns = shutil.ignore_patterns('.*', 'scenarios', 'tmp', '')
     shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
@@ -201,6 +202,10 @@ def publish_release(take_screenshots: bool) -> None:
     repo.git.commit(m=f"Release {new_mod_version}")
     print("- changes commited")
 
+    if LOCAL:
+        shutil.copy(archive_path, cwd / f"{full_mod_name}.zip")
+        repo.head.reset("HEAD~1", index=True, working_tree=True)
+
     if RELEASE:
         # Push to Github
         print("- pushing to Github...", end=" ", flush=True)
@@ -255,7 +260,10 @@ def publish_release(take_screenshots: bool) -> None:
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to publish a release? (y/n): ")
-    if proceed == "y":
-        screenshots = input("Retake screenshots as well? (y/n): ")
-        publish_release(screenshots == "y")
+    if LOCAL:
+        publish_release(False)
+    else:
+        proceed = input("Sure to publish a release? (y/n): ")
+        if proceed == "y":
+            screenshots = input("Retake screenshots as well? (y/n): ")
+            publish_release(screenshots == "y")
