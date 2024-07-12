@@ -20,7 +20,7 @@ def update_versions() -> None:
 
     # Determine the old migration version on this branch
     modfiles_path = cwd / "modfiles"
-    migrations_path = modfiles_path / "data" / "migrations"
+    migrations_path = modfiles_path / "backend" / "migrations"
     masterlist_path = migrations_path / "masterlist.json"
     with masterlist_path.open("r") as file:
         masterlist = json.load(file)
@@ -62,7 +62,7 @@ def update_versions() -> None:
     print("- masterlist updated")
 
     # Update migrator to include the new migration (a bit janky)
-    migrator_path = modfiles_path / "data" / "handlers" / "migrator.lua"
+    migrator_path = modfiles_path / "backend" / "handlers" / "migrator.lua"
     with (migrator_path.open("r")) as migrator:
         migrator_lines = migrator.readlines()
 
@@ -75,7 +75,7 @@ def update_versions() -> None:
             for masterlist_version in masterlist:
                 internal_version = masterlist_version.replace(".", "_")
                 new_version_line = (f"    [{version_index}] = {{version=\"{masterlist_version}\", "
-                                    f"migration=require(\"data.migrations.migration_{internal_version}\")}},\n")
+                                    f"migration=require(\"backend.migrations.migration_{internal_version}\")}},\n")
                 migrator_lines.insert(line_index+version_index, new_version_line)
                 version_index += 1
             break

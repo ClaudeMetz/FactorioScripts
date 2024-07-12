@@ -17,7 +17,7 @@ def new_migration() -> None:
     print("- next version determined")
 
     # Add a new migration file, targeted at the next version, using the blank 0_0_0 template
-    migrations_path = modfiles_path / "data" / "migrations"
+    migrations_path = modfiles_path / "backend" / "migrations"
     blank_migration_path = (migrations_path / "migration_0_0_0.lua")
     new_migration_path = migrations_path / f"migration_{new_mod_version.replace('.', '_')}.lua"
     shutil.copy(blank_migration_path, new_migration_path)
@@ -33,7 +33,7 @@ def new_migration() -> None:
     print("- masterlist updated")
 
     # Update migrator to include the new migration (a bit janky)
-    migrator_path = modfiles_path / "data" / "handlers" / "migrator.lua"
+    migrator_path = modfiles_path / "backend" / "handlers" / "migrator.lua"
     with (migrator_path.open("r")) as migrator:
         migrator_lines = migrator.readlines()
 
@@ -46,7 +46,7 @@ def new_migration() -> None:
             for masterlist_version in masterlist:
                 internal_version = masterlist_version.replace(".", "_")
                 new_version_line = (f"    [{version_index}] = {{version=\"{masterlist_version}\", "
-                                    f"migration=require(\"data.migrations.migration_{internal_version}\")}},\n")
+                                    f"migration=require(\"backend.migrations.migration_{internal_version}\")}},\n")
                 migrator_lines.insert(line_index+version_index, new_version_line)
                 version_index += 1
             break
