@@ -17,7 +17,7 @@ cwd = Path.cwd() / ".."  # back out of scripts folder
 repo = Repo(cwd)
 
 # Script config
-MODNAME = cwd.resolve().name
+MODNAME = cwd.resolve().name.lower()
 FACTORIO_PATH = "/Applications/factorio.app/Contents/MacOS/factorio"
 USERDATA_PATH = PosixPath("~/Library/Application Support/factorio").expanduser()
 RELEASE = (len(sys.argv) == 2 and sys.argv[1] == "--release")
