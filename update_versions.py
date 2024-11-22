@@ -91,6 +91,4 @@ def update_versions() -> None:
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to update mod and migration versions? (y/n): ")
-    if proceed == "y":
-        update_versions()
+    update_versions()

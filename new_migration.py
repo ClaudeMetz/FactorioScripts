@@ -57,6 +57,4 @@ def new_migration() -> None:
 
 
 if __name__ == "__main__":
-    proceed = input("Sure to add a new migration? (y/n): ")
-    if proceed == "y":
-        new_migration()
+    new_migration()

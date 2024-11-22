@@ -113,8 +113,9 @@ def publish_release(take_screenshots: bool) -> None:
     if foreign_locale_path.exists():
         shutil.copy(str(foreign_locale_path / "LICENSE.md"), tmp_locale_license_path)
 
-        locale_repo = repo.submodule("locale")
-        locale_repo.module().git.pull()
+        locale_repo = repo.submodule("locale").module()
+        locale_repo.git.checkout("master")
+        locale_repo.git.pull()
 
         locale_list = []
         directory_list = [f for f in foreign_locale_path.rglob('./*') if f.is_dir()]
@@ -263,7 +264,5 @@ if __name__ == "__main__":
     if LOCAL:
         publish_release(False)
     else:
-        proceed = input("Sure to publish a release? (y/n): ")
-        if proceed == "y":
-            screenshots = input("Retake screenshots as well? (y/n): ")
-            publish_release(screenshots == "y")
+        screenshots = input("Retake screenshots as well? (y/n): ")
+        publish_release(screenshots == "y")
