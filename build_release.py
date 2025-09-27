@@ -46,7 +46,7 @@ def publish_release(take_screenshots: bool) -> None:
         json.dump(data, file, indent=4)
     print("- info.json version bumped")
 
-    # Update changelog file for release
+    # Prepare changelog file
     tmp_path = modfiles_path / "tmp"
     old_changelog_path = modfiles_path / "changelog.txt"
     with tmp_path.open("w") as new_file, old_changelog_path.open("r") as old_file:
@@ -127,19 +127,15 @@ def publish_release(take_screenshots: bool) -> None:
             shutil.copy(str(directory / "config.cfg"), str(locale_destination_path / "config.cfg"))
         print("- foreign locale files updated")
 
-    # ZIP up release
-    releases_path = cwd / "releases"
-    releases_path.mkdir(exist_ok=True)
-    zipfile_path = releases_path / full_mod_name
-    archive_path = shutil.make_archive(str(zipfile_path), "zip", str(cwd), str(tmp_release_path.parts[-1]))
+    # ZIP up release files
+    archive_path = shutil.make_archive(str(cwd / full_mod_name), "zip", str(cwd), str(tmp_release_path.parts[-1]))
     shutil.rmtree(tmp_release_path)
     print("- zip archive created")
 
     # Add a blank changelog entry for further development
     changelog_path = modfiles_path / "changelog.txt"
-    new_changelog_entry = ("-----------------------------------------------------------------------------------------"
-                           "----------\nVersion: 0.00.00\nDate: 00. 00. 0000\n  Features:\n    - \n  Changes:\n    - "
-                           "\n  Bugfixes:\n    - \n\n")
+    new_changelog_entry = (("-" * 99) + "\nVersion: 0.00.00\nDate: 00. 00. 0000\n"
+                           "  Features:\n    - \n  Changes:\n    - \n  Bugfixes:\n    - \n\n")
     updated_changelog = new_changelog_entry + changelog_path.read_text()
     changelog_path.write_text(updated_changelog)
     print("- blank changelog entry added")
@@ -201,18 +197,46 @@ def publish_release(take_screenshots: bool) -> None:
     # Commit changes
     repo.git.add("-A")
     repo.git.commit(m=f"Release {new_mod_version}")
-    print("- changes commited")
+    print("- changes committed")
+
+    # Create tag
+    tag_name = f"v{new_mod_version}"
+    with new_changelog_path.open("r") as file:
+        section = re.split(r"^-{99}$", file.read(), flags=re.MULTILINE)[2]
+    message = ""
+    for line in section.strip().splitlines()[2:]:
+        if line.startswith("    - "):
+            message += f"  {line.strip()}\n"
+        else: # startswith("  ")
+            message += f"- {line.strip()}\n"
+    repo.create_tag(tag_name, message=message)
+    print("- tag created")
 
     if LOCAL:
         shutil.copy(archive_path, cwd / f"{full_mod_name}.zip")
         repo.head.reset("HEAD~1", index=True, working_tree=True)
 
     if RELEASE:
-        # Push to Github
+        # Push commits & tags to Github
         print("- pushing to Github...", end=" ", flush=True)
         repo.git.push("origin")
+        repo.git.push("--tags")
         print("done")
 
+        # Create Github release
+        print("- creating Github release...", end=" ", flush=True)
+        subprocess.run([
+            "gh", "release", "create", tag_name,
+            "--title", f"Factory Planner {new_mod_version}",
+            "--notes-from-tag",
+        ], cwd=cwd, stdout=subprocess.DEVNULL)
+        subprocess.run([
+            "gh", "release", "upload", tag_name,
+            archive_path
+        ], cwd=cwd, stdout=subprocess.DEVNULL)
+        print("done")
+
+        # Publish to mod portal
         def upload_data(upload_url: str, api_key: str, file_path: str, dataset_name: str) -> None:
             response = requests.post(
                 upload_url,
@@ -228,7 +252,6 @@ def publish_release(take_screenshots: bool) -> None:
                 if not response.ok:
                     raise RuntimeError(f"upload failed: {response.text}")
 
-        # Publish to mod portal
         print("- publishing to mod portal...", end=" ", flush=True)
         UPLOAD_API_URL = "https://mods.factorio.com/api/v2/mods/releases/init_upload"
         UPLOAD_API_KEY = os.getenv("MOD_UPLOAD_API_KEY") or ""
@@ -256,6 +279,8 @@ def publish_release(take_screenshots: bool) -> None:
             for screenshot_path in sorted(screenshots_path.iterdir()):
                 upload_data(f"{IMAGE_API_URL}/add", EDIT_API_KEY, str(screenshot_path), "image")
             print("done")
+
+    Path(archive_path).unlink()
 
     print(f"Version {new_mod_version} released!")
 
