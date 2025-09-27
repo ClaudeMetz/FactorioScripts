@@ -196,6 +196,7 @@ def publish_release(take_screenshots: bool) -> None:
 
     # Commit changes
     repo.git.add("-A")
+    repo.git.reset("HEAD", "--", archive_path)
     repo.git.commit(m=f"Release {new_mod_version}")
     print("- changes committed")
 
