@@ -85,21 +85,12 @@ def publish_release(take_screenshots: bool) -> None:
     mod_license_path.write_text(updated_license_text)
     print("- updated LICENSE year")
 
-    # Disable devmode for release
-    control_path, tmp_control_path = modfiles_path / "control.lua", modfiles_path / "tmp"
-    shutil.copyfile(control_path, tmp_control_path)  # copy to restore afterwards
-    release_control_code = re.sub("DEV_ACTIVE = true", "DEV_ACTIVE = false", control_path.read_text())
-    control_path.write_text(release_control_code)
-
     # Copy relevant files to temporary folder
     full_mod_name = Path(f"{MODNAME}_{new_mod_version}")
     tmp_release_path = cwd / full_mod_name
     ignore_patterns = shutil.ignore_patterns('.*', 'scenarios', 'tmp', '')
     shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
     print("- relevant files copied")
-
-    # Restore control.lua from backup
-    tmp_control_path.rename(control_path)
 
     # Include LICENSE file
     shutil.copy(str(cwd / "LICENSE.md"), str(tmp_release_path / "LICENSE.md"))
