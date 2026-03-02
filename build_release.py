@@ -140,13 +140,19 @@ def publish_release(take_screenshots: bool) -> None:
         shutil.copy(str(screenshotter_path / "mod-list.json"), str(current_modlist_path))
         print("- mod-list.json replaced")
 
+        # Link the scenario folder for the game to find
+        scenario_path = USERDATA_PATH / "scenarios" / "screenshotter"
+        scenario_path.symlink_to(screenshotter_path)
+        print("- scenario symlinked")
+
         # Run the screenshotting scenario, waiting for it to signal it's done
         print("- taking screenshots...", end=" ", flush=True)
         with subprocess.Popen(
             [FACTORIO_PATH,
-            "--load-scenario", f"{MODNAME}/screenshotter",
+            "--load-scenario", "screenshotter",
             "--config", str(screenshotter_path / "config.ini"),
-            "--instrument-mod", MODNAME  # use the same mod as the instrument mod for simplicity
+            "--instrument-mod", MODNAME,  # use the same mod as the instrument mod for simplicity
+            "--disable-migration-window"
             ], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True
         ) as factorio:
             if factorio.stdout is not None:
@@ -181,9 +187,9 @@ def publish_release(take_screenshots: bool) -> None:
             cropped_img.save(screenshots_path / f"{scene}.png")
         print("- screenshots cropped and saved")
 
-        # Clean up script output
+        # Clean up
         shutil.rmtree(script_output_path)
-        print("- script-output removed")
+        scenario_path.unlink()
 
     # Commit changes
     repo.git.add("-A")
@@ -191,24 +197,24 @@ def publish_release(take_screenshots: bool) -> None:
     repo.git.commit(m=f"Release {new_mod_version}")
     print("- changes committed")
 
-    # Create tag
-    tag_name = f"v{new_mod_version}"
-    with new_changelog_path.open("r") as file:
-        section = re.split(r"^-{99}$", file.read(), flags=re.MULTILINE)[2]
-    message = ""
-    for line in section.strip().splitlines()[2:]:
-        if line.startswith("    - "):
-            message += f"  {line.strip()}\n"
-        else: # startswith("  ")
-            message += f"- {line.strip()}\n"
-    repo.create_tag(tag_name, message=message)
-    print("- tag created")
-
     if LOCAL:
         shutil.copy(archive_path, cwd / f"{full_mod_name}.zip")
         repo.head.reset("HEAD~1", index=True, working_tree=True)
 
     if RELEASE:
+        # Create tag
+        tag_name = f"v{new_mod_version}"
+        with new_changelog_path.open("r") as file:
+            section = re.split(r"^-{99}$", file.read(), flags=re.MULTILINE)[2]
+        message = ""
+        for line in section.strip().splitlines()[2:]:
+            if line.startswith("    - "):
+                message += f"  {line.strip()}\n"
+            else: # startswith("  ")
+                message += f"- {line.strip()}\n"
+        repo.create_tag(tag_name, message=message)
+        print("- tag created")
+
         # Push commits & tags to Github
         print("- pushing to Github...", end=" ", flush=True)
         repo.git.push("origin")
