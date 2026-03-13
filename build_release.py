@@ -83,7 +83,7 @@ def publish_release(take_screenshots: bool) -> None:
     notice_regex = r"Copyright \(c\) [0-9]{4}"
     updated_license_text = re.sub(notice_regex, f"Copyright (c) {current_year}", mod_license_path.read_text())
     mod_license_path.write_text(updated_license_text)
-    print("- updated LICENSE year")
+    print("- LICENSE year updated")
 
     # Copy relevant files to temporary folder
     full_mod_name = Path(f"{MODNAME}_{new_mod_version}")
@@ -116,7 +116,7 @@ def publish_release(take_screenshots: bool) -> None:
             locale_destination_path = release_locale_path / locale_name
             locale_destination_path.mkdir()
             shutil.copy(str(directory / "config.cfg"), str(locale_destination_path / "config.cfg"))
-        print("- foreign locale files updated")
+        print("- locale files updated")
 
     # ZIP up release files
     archive_path = shutil.make_archive(str(cwd / full_mod_name), "zip", str(cwd), str(tmp_release_path.parts[-1]))
@@ -138,12 +138,10 @@ def publish_release(take_screenshots: bool) -> None:
         current_modlist_path = USERDATA_PATH / "mods" / "mod-list.json"
         current_modlist_path.unlink(missing_ok=True)
         shutil.copy(str(screenshotter_path / "mod-list.json"), str(current_modlist_path))
-        print("- mod-list.json replaced")
 
         # Link the scenario folder for the game to find
         scenario_path = USERDATA_PATH / "scenarios" / "screenshotter"
         scenario_path.symlink_to(screenshotter_path)
-        print("- scenario symlinked")
 
         # Run the screenshotting scenario, waiting for it to signal it's done
         print("- taking screenshots...", end=" ", flush=True)
