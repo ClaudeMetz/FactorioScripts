@@ -31,6 +31,17 @@ def publish_release(take_screenshots: bool) -> None:
         print("- repository is dirty, aborting")
         return
 
+    CI_status = subprocess.run([
+        "gh", "run", "list",
+        "--branch", "master",
+        "--limit", "1",
+        "--json", "conclusion",
+        "--jq", ".[0].conclusion"
+    ], cwd=cwd, capture_output=True, text=True).stdout.strip()
+    if CI_status != "success":
+        print(f"Latest CI run did not succeed (status: {CI_status}), aborting")
+        return
+
     # Determine the next mod version
     modfiles_path = cwd / "modfiles"
     info_json_path = modfiles_path / "info.json"
