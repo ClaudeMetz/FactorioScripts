@@ -21,7 +21,6 @@ MODNAME = cwd.resolve().name.lower()
 FACTORIO_PATH = "/Applications/factorio.app/Contents/MacOS/factorio"
 USERDATA_PATH = PosixPath("~/Library/Application Support/factorio").expanduser()
 RELEASE = (len(sys.argv) == 2 and sys.argv[1] == "--release")
-LOCAL = (len(sys.argv) == 2 and sys.argv[1] == "--local")
 
 def publish_release(take_screenshots: bool) -> None:
     if RELEASE and repo.active_branch.name != "master":
@@ -99,7 +98,7 @@ def publish_release(take_screenshots: bool) -> None:
     # Copy relevant files to temporary folder
     full_mod_name = Path(f"{MODNAME}_{new_mod_version}")
     tmp_release_path = cwd / full_mod_name
-    ignore_patterns = shutil.ignore_patterns('.*', 'scenarios', 'tmp', '')
+    ignore_patterns = shutil.ignore_patterns('.*', 'tmp', '')
     shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
     print("- relevant files copied")
 
@@ -143,7 +142,7 @@ def publish_release(take_screenshots: bool) -> None:
     print("- blank changelog entry added")
 
     # Run screenshotter if requested and possible
-    screenshotter_path =  cwd / "scenarios" / "screenshotter"
+    screenshotter_path =  cwd / "screenshots" / "automation"
     if take_screenshots and screenshotter_path.is_dir():
         # Overwrite mod-list.json with the one found in the scenarios folder
         current_modlist_path = USERDATA_PATH / "mods" / "mod-list.json"
@@ -151,14 +150,15 @@ def publish_release(take_screenshots: bool) -> None:
         shutil.copy(str(screenshotter_path / "mod-list.json"), str(current_modlist_path))
 
         # Link the scenario folder for the game to find
-        scenario_path = USERDATA_PATH / "scenarios" / "screenshotter"
-        scenario_path.symlink_to(screenshotter_path)
+        scenarios_path = modfiles_path / "scenarios"
+        scenarios_path.mkdir(exist_ok=True)
+        (scenarios_path / "screenshotter").symlink_to(screenshotter_path / "scenario")
 
         # Run the screenshotting scenario, waiting for it to signal it's done
         print("- taking screenshots...", end=" ", flush=True)
         with subprocess.Popen(
             [FACTORIO_PATH,
-            "--load-scenario", "screenshotter",
+            "--load-scenario", "factoryplanner/screenshotter",
             "--config", str(screenshotter_path / "config.ini"),
             "--instrument-mod", MODNAME,  # use the same mod as the instrument mod for simplicity
             "--disable-migration-window"
@@ -179,7 +179,8 @@ def publish_release(take_screenshots: bool) -> None:
         # Clear previous screenshots
         screenshots_path = cwd / "screenshots"
         for screenshot in screenshots_path.iterdir():
-            screenshot.unlink()
+            if screenshot.is_file():
+                screenshot.unlink()
         print("- previous screenshots cleared")
 
         # Crop screenshots according to the given dimensions
@@ -198,17 +199,13 @@ def publish_release(take_screenshots: bool) -> None:
 
         # Clean up
         shutil.rmtree(script_output_path)
-        scenario_path.unlink()
+        shutil.rmtree(scenarios_path)
 
     # Commit changes
     repo.git.add("-A")
     repo.git.reset("HEAD", "--", archive_path)
     repo.git.commit(m=f"Release {new_mod_version}")
     print("- changes committed")
-
-    if LOCAL:
-        shutil.copy(archive_path, cwd / f"{full_mod_name}.zip")
-        repo.head.reset("HEAD~1", index=True, working_tree=True)
 
     if RELEASE:
         # Create tag
@@ -293,8 +290,5 @@ def publish_release(take_screenshots: bool) -> None:
 
 
 if __name__ == "__main__":
-    if LOCAL:
-        publish_release(False)
-    else:
-        screenshots = input("Retake screenshots as well? (y/n): ")
-        publish_release(screenshots == "y")
+    screenshots = input("Retake screenshots as well? (y/n): ")
+    publish_release(screenshots == "y")
