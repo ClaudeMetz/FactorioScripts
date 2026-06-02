@@ -23,35 +23,28 @@ def new_migration() -> None:
     shutil.copy(blank_migration_path, new_migration_path)
     print("- migration file created")
 
-    # Load and update the masterlist
-    masterlist_path = migrations_path / "masterlist.json"
-    with masterlist_path.open("r") as file:
-        masterlist = json.load(file)
-    masterlist.append(new_mod_version)
-    with masterlist_path.open("w") as file:
-        json.dump(masterlist, file, indent=4)
-    print("- masterlist updated")
-
-    # Update migrator to include the new migration (a bit janky)
-    migrator_path = modfiles_path / "backend" / "handlers" / "migrator.lua"
-    with (migrator_path.open("r")) as migrator:
+    # Update migrator to include the new migration
+    migrator_path = migrations_path / "migrator.lua"
+    with migrator_path.open("r") as migrator:
         migrator_lines = migrator.readlines()
 
-    # Remove every line of the migration masterlist and replace them according to the masterlist
-    version_line_regex = r"^\s+\[\d+\] = {version=.+},?\n$"
+    # Extract existing versions from migrator in order, then append the new one
+    version_line_regex = r"^\s+\[\d+\] = {version=\"([^\"]+)\".+},?\n$"
+    masterlist = [m.group(1) for line in migrator_lines if (m := re.fullmatch(version_line_regex, line))]
+    masterlist.append(new_mod_version)
+
+    # Remove every existing version line and reinsert them all in order
     migrator_lines[:] = [line for line in migrator_lines if not re.fullmatch(version_line_regex, line)]
     for line_index, line in enumerate(migrator_lines):
         if "local migration_masterlist = {" in line:
-            version_index = 1
-            for masterlist_version in masterlist:
-                internal_version = masterlist_version.replace(".", "_")
-                new_version_line = (f"    [{version_index}] = {{version=\"{masterlist_version}\", "
+            for version_index, version in enumerate(masterlist, start=1):
+                internal_version = version.replace(".", "_")
+                new_version_line = (f"    [{version_index}] = {{version=\"{version}\", "
                                     f"migration=require(\"backend.migrations.migration_{internal_version}\")}},\n")
                 migrator_lines.insert(line_index+version_index, new_version_line)
-                version_index += 1
             break
 
-    with (migrator_path.open("w")) as migrator:
+    with migrator_path.open("w") as migrator:
         migrator.writelines(migrator_lines)
     print("- migrator file updated")
 
