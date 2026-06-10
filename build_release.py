@@ -21,6 +21,7 @@ MODNAME = cwd.resolve().name.lower()
 FACTORIO_PATH = "/Applications/factorio.app/Contents/MacOS/factorio"
 USERDATA_PATH = PosixPath("~/Library/Application Support/factorio").expanduser()
 RELEASE = (len(sys.argv) == 2 and sys.argv[1] == "--release")
+LOCAL = (len(sys.argv) == 2 and sys.argv[1] == "--local")
 
 def publish_release(take_screenshots: bool) -> None:
     if RELEASE and repo.active_branch.name != "master":
@@ -284,11 +285,15 @@ def publish_release(take_screenshots: bool) -> None:
                 upload_data(f"{IMAGE_API_URL}/add", EDIT_API_KEY, str(screenshot_path), "image")
             print("done")
 
-    Path(archive_path).unlink()
+    if not LOCAL:
+        Path(archive_path).unlink()
 
     print(f"Version {new_mod_version} released!")
 
 
 if __name__ == "__main__":
-    screenshots = input("Retake screenshots as well? (y/n): ")
-    publish_release(screenshots == "y")
+    if LOCAL:
+        publish_release(False)
+    else:
+        screenshots = input("Update screenshots? (y/n): ")
+        publish_release(screenshots == "y")
