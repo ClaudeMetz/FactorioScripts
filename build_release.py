@@ -284,7 +284,7 @@ def publish_release(take_screenshots: bool) -> None:
 
             # Upload new mod portal images
             print("- uploading to mod portal...", end=" ", flush=True)
-            for screenshot_path in sorted(screenshots_path.iterdir()):
+            for screenshot_path in sorted(p for p in screenshots_path.iterdir() if p.is_file()):
                 upload_data(f"{IMAGE_API_URL}/add", EDIT_API_KEY, str(screenshot_path), "image")
             print("done")
 
