@@ -49,15 +49,15 @@ def publish_release(take_screenshots: bool) -> None:
     modfiles_path = cwd / "modfiles"
     info_json_path = modfiles_path / "info.json"
     with info_json_path.open("r") as file:
-        data = json.load(file)
-    split_old_mod_version = data["version"].split(".")
+        info_data = json.load(file)
+    split_old_mod_version = info_data["version"].split(".")
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
     new_mod_version = ".".join(split_old_mod_version)
 
     # Bump info.json version
-    data["version"] = new_mod_version
+    info_data["version"] = new_mod_version
     with info_json_path.open("w") as file:
-        json.dump(data, file, indent=4)
+        json.dump(info_data, file, indent=4)
     print("- info.json version bumped")
 
     # Prepare changelog file
@@ -162,7 +162,7 @@ def publish_release(take_screenshots: bool) -> None:
         print("- taking screenshots...", end=" ", flush=True)
         with subprocess.Popen(
             [FACTORIO_PATH,
-            "--load-scenario", "factoryplanner/screenshotter",
+            "--load-scenario", f"{MODNAME}/screenshotter",
             "--config", str(screenshotter_path / "config.ini"),
             "--instrument-mod", MODNAME,  # use the same mod as the instrument mod for simplicity
             "--disable-migration-window"
@@ -235,7 +235,7 @@ def publish_release(take_screenshots: bool) -> None:
         print("- creating Github release...", end=" ", flush=True)
         subprocess.run([
             "gh", "release", "create", tag_name,
-            "--title", f"Factory Planner {new_mod_version}",
+            "--title", f"{info_data["title"]} {new_mod_version}",
             "--notes-from-tag",
         ], cwd=cwd, stdout=subprocess.DEVNULL)
         subprocess.run([
