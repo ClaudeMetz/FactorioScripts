@@ -65,8 +65,7 @@ def publish_release(take_screenshots: bool) -> None:
     old_changelog_path = modfiles_path / "changelog.txt"
     with tmp_path.open("w") as new_file, old_changelog_path.open("r") as old_file:
         # Find the strings corresponding to eventual empty categories (this is silly)
-        empty_categories = re.findall(r"  [\w]+:\n    - ?\n", old_file.read())
-        empty_categories = [(line.split("\n")[0] + "\n") for line in empty_categories]
+        empty_categories = re.findall(r"  [\w]+:\n(?!    - )", old_file.read())
         empty_category_dict = dict.fromkeys(empty_categories, 1)
         old_file.seek(0)  # reset seekhead after file.read()
 
@@ -83,7 +82,7 @@ def publish_release(take_screenshots: bool) -> None:
                     new_file.write(f"Version: {new_mod_version}\n")
                 elif "Date: 00. 00. 0000" in line:
                     new_file.write(f"Date: {datetime.today().strftime('%d. %m. %Y')}\n")
-                elif not re.match(r"    -( )?\n", line) and line not in empty_category_dict:
+                elif line not in empty_category_dict:
                     new_file.write(line)
 
     old_changelog_path.unlink()
@@ -140,7 +139,7 @@ def publish_release(take_screenshots: bool) -> None:
     # Add a blank changelog entry for further development
     changelog_path = modfiles_path / "changelog.txt"
     new_changelog_entry = (("-" * 99) + "\nVersion: 0.00.00\nDate: 00. 00. 0000\n"
-                           "  Features:\n    - \n  Changes:\n    - \n  Bugfixes:\n    - \n\n")
+                           "  Features:\n  Changes:\n  Bugfixes:\n\n")
     updated_changelog = new_changelog_entry + changelog_path.read_text()
     changelog_path.write_text(updated_changelog)
     print("- blank changelog entry added")
