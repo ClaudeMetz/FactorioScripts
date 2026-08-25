@@ -99,7 +99,7 @@ def publish_release(take_screenshots: bool) -> None:
     tmp_path.rename(new_changelog_path)
     print("- changelog updated for release")
 
-    # Update README year if necessary
+    # Update LICENSE year if necessary
     mod_license_path = ROOT / "LICENSE.md"
     current_year = datetime.today().year
     notice_regex = r"Copyright \(c\) [0-9]{4}"
@@ -110,7 +110,7 @@ def publish_release(take_screenshots: bool) -> None:
     # Copy relevant files to temporary folder
     full_mod_name = Path(f"{MODNAME}_{new_mod_version}")
     tmp_release_path = ROOT / full_mod_name
-    ignore_patterns = shutil.ignore_patterns('.*', 'tmp', '')
+    ignore_patterns = shutil.ignore_patterns('.*', 'tmp')
     shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
     print("- relevant files copied")
 
@@ -154,7 +154,7 @@ def publish_release(take_screenshots: bool) -> None:
     print("- blank changelog entry added")
 
     # Run screenshotter if requested and possible
-    screenshotter_path =  ROOT / "screenshots" / "automation"
+    screenshotter_path = ROOT / "screenshots" / "automation"
     if take_screenshots and screenshotter_path.is_dir():
         # Swap in the screenshotter's mod-list, keeping the existing one to restore afterwards
         userdata_path = Path(os.environ["FACTORIO_USERDATA"]).expanduser()
