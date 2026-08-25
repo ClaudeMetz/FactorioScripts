@@ -32,7 +32,8 @@ def publish_release(take_screenshots: bool) -> None:
 
     needed_vars = ["FACTORIO", "FACTORIO_USERDATA"] if take_screenshots else []
     if RELEASE:
-        needed_vars += ["MOD_UPLOAD_API_KEY"] + (["MOD_EDIT_API_KEY"] if take_screenshots else [])
+        needed_vars += ["MOD_UPLOAD_API_KEY", "MOD_DISCORD_WEBHOOK"]
+        needed_vars += ["MOD_EDIT_API_KEY"] if take_screenshots else []
     missing_vars = [var for var in needed_vars if not os.getenv(var)]
     if missing_vars:
         print(f"- environment variable(s) {', '.join(missing_vars)} unset, aborting")
@@ -238,9 +239,9 @@ def publish_release(take_screenshots: bool) -> None:
         message = ""
         for line in section.strip().splitlines()[2:]:
             if line.startswith("    - "):
-                message += f"  {line.strip()}\n"
-            else: # startswith("  ")
-                message += f"- {line.strip()}\n"
+                message += f"{line.strip()}\n"
+            else:
+                message += f"### {line.strip()}\n"
         repo.create_tag(tag_name, message=message)
         print("- tag created")
 
@@ -284,6 +285,26 @@ def publish_release(take_screenshots: bool) -> None:
         UPLOAD_API_KEY = os.environ["MOD_UPLOAD_API_KEY"]
         upload_data(UPLOAD_API_URL, UPLOAD_API_KEY, archive_path, "file")
         print("done")
+
+        # Announce the release on Discord, linking issue references as Github does
+        print("- posting to Discord...", end=" ", flush=True)
+        source_url = repo.remotes.origin.url.removesuffix(".git")
+        thumbnail_url = f"{source_url}/raw/master/modfiles/thumbnail.png"
+        description = re.sub(r"#(\d+)", rf"[#\1]({source_url}/issues/\1)", message)
+        try:
+            response = requests.post(os.environ["MOD_DISCORD_WEBHOOK"], timeout=10, json={
+                "username": info_data["title"],
+                "embeds": [{
+                    "title": f"Version {new_mod_version}",
+                    "url": f"https://mods.factorio.com/mod/{MODNAME}",
+                    "color": 0x3498DB,
+                    "description": description[:4096],
+                    "thumbnail": {"url": thumbnail_url}
+                }]
+            })
+            print("done" if response.ok else f"failed: {response.text}")
+        except requests.RequestException as error:  # a published release must not fail on this
+            print(f"failed: {error}")
 
         # Update mod portal screenshots if requested
         if take_screenshots:
