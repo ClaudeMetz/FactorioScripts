@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["requests>=2.32.3", "gitpython>=3.1.43", "pillow>=11.0.0"]
+# ///
+
 import json
 import os
 import re

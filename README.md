@@ -3,7 +3,7 @@
 `build_release.py` cuts a release via the command below.
 
 ```sh
-uv run --project scripts scripts/build_release.py [--local | --release]
+uv run scripts/build_release.py [--local | --release]
 ```
 
 ## Environment variables
