@@ -7,19 +7,18 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 import requests
 from git import Repo
 from PIL import Image  # type: ignore
 
-cwd = Path.cwd() / ".."  # back out of scripts folder
-repo = Repo(cwd)
+ROOT = Path(__file__).resolve().parent.parent  # the script lives in ROOT/scripts
+repo = Repo(ROOT)
 
 # Script config
-MODNAME = cwd.resolve().name.lower()
-FACTORIO_PATH = "/Applications/factorio.app/Contents/MacOS/factorio"
-USERDATA_PATH = PosixPath("~/Library/Application Support/factorio").expanduser()
+INFO_PATH = ROOT / "modfiles" / "info.json"
+MODNAME = json.loads(INFO_PATH.read_text())["name"]
 RELEASE = (len(sys.argv) == 2 and sys.argv[1] == "--release")
 LOCAL = (len(sys.argv) == 2 and sys.argv[1] == "--local")
 
@@ -31,8 +30,19 @@ def publish_release(take_screenshots: bool) -> None:
         print("- repository is dirty, aborting")
         return
 
+    needed_vars = ["FACTORIO", "FACTORIO_USERDATA"] if take_screenshots else []
+    if RELEASE:
+        needed_vars += ["MOD_UPLOAD_API_KEY"] + (["MOD_EDIT_API_KEY"] if take_screenshots else [])
+    missing_vars = [var for var in needed_vars if not os.getenv(var)]
+    if missing_vars:
+        print(f"- environment variable(s) {', '.join(missing_vars)} unset, aborting")
+        return
+    if take_screenshots and not Path(os.environ["FACTORIO"]).exists():
+        print(f"- no Factorio at {os.environ['FACTORIO']}, aborting")
+        return
+
     # Check CI succeeded if applicable
-    ci_configured = os.path.isdir(os.path.join(cwd, ".github", "workflows"))
+    ci_configured = os.path.isdir(os.path.join(ROOT, ".github", "workflows"))
     if ci_configured:
         CI_status = subprocess.run([
             "gh", "run", "list",
@@ -40,15 +50,14 @@ def publish_release(take_screenshots: bool) -> None:
             "--limit", "1",
             "--json", "conclusion",
             "--jq", ".[0].conclusion"
-        ], cwd=cwd, capture_output=True, text=True).stdout.strip()
+        ], cwd=ROOT, capture_output=True, text=True).stdout.strip()
         if CI_status != "success":
             print(f"Latest CI run did not succeed (status: {CI_status}), aborting")
             return
 
     # Determine the next mod version
-    modfiles_path = cwd / "modfiles"
-    info_json_path = modfiles_path / "info.json"
-    with info_json_path.open("r") as file:
+    modfiles_path = ROOT / "modfiles"
+    with INFO_PATH.open("r") as file:
         info_data = json.load(file)
     split_old_mod_version = info_data["version"].split(".")
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
@@ -56,14 +65,14 @@ def publish_release(take_screenshots: bool) -> None:
 
     # Bump info.json version
     info_data["version"] = new_mod_version
-    with info_json_path.open("w") as file:
+    with INFO_PATH.open("w", newline="\n") as file:
         json.dump(info_data, file, indent=4)
     print("- info.json version bumped")
 
     # Prepare changelog file
     tmp_path = modfiles_path / "tmp"
     old_changelog_path = modfiles_path / "changelog.txt"
-    with tmp_path.open("w") as new_file, old_changelog_path.open("r") as old_file:
+    with tmp_path.open("w", newline="\n") as new_file, old_changelog_path.open("r") as old_file:
         # Find the strings corresponding to eventual empty categories (this is silly)
         empty_categories = re.findall(r"  [\w]+:\n(?!    - )", old_file.read())
         empty_category_dict = dict.fromkeys(empty_categories, 1)
@@ -91,26 +100,26 @@ def publish_release(take_screenshots: bool) -> None:
     print("- changelog updated for release")
 
     # Update README year if necessary
-    mod_license_path = cwd / "LICENSE.md"
+    mod_license_path = ROOT / "LICENSE.md"
     current_year = datetime.today().year
     notice_regex = r"Copyright \(c\) [0-9]{4}"
     updated_license_text = re.sub(notice_regex, f"Copyright (c) {current_year}", mod_license_path.read_text())
-    mod_license_path.write_text(updated_license_text)
+    mod_license_path.write_text(updated_license_text, newline="\n")
     print("- LICENSE year updated")
 
     # Copy relevant files to temporary folder
     full_mod_name = Path(f"{MODNAME}_{new_mod_version}")
-    tmp_release_path = cwd / full_mod_name
+    tmp_release_path = ROOT / full_mod_name
     ignore_patterns = shutil.ignore_patterns('.*', 'tmp', '')
     shutil.copytree(modfiles_path, tmp_release_path, ignore=ignore_patterns)
     print("- relevant files copied")
 
     # Include LICENSE file
-    shutil.copy(str(cwd / "LICENSE.md"), str(tmp_release_path / "LICENSE.md"))
+    shutil.copy(str(ROOT / "LICENSE.md"), str(tmp_release_path / "LICENSE.md"))
     print("- license file included")
 
     # Include up-to-date versions of foreign locales, if present
-    foreign_locale_path = cwd / "locale"
+    foreign_locale_path = ROOT / "locale"
     release_locale_path = tmp_release_path / "locale"
     tmp_locale_license_path = release_locale_path / "LICENSE.md"
 
@@ -132,7 +141,7 @@ def publish_release(take_screenshots: bool) -> None:
         print("- locale files updated")
 
     # ZIP up release files
-    archive_path = shutil.make_archive(str(cwd / full_mod_name), "zip", str(cwd), str(tmp_release_path.parts[-1]))
+    archive_path = shutil.make_archive(str(ROOT / full_mod_name), "zip", str(ROOT), str(tmp_release_path.parts[-1]))
     shutil.rmtree(tmp_release_path)
     print("- zip archive created")
 
@@ -141,68 +150,79 @@ def publish_release(take_screenshots: bool) -> None:
     new_changelog_entry = (("-" * 99) + "\nVersion: 0.00.00\nDate: 00. 00. 0000\n"
                            "  Features:\n  Changes:\n  Bugfixes:\n\n")
     updated_changelog = new_changelog_entry + changelog_path.read_text()
-    changelog_path.write_text(updated_changelog)
+    changelog_path.write_text(updated_changelog, newline="\n")
     print("- blank changelog entry added")
 
     # Run screenshotter if requested and possible
-    screenshotter_path =  cwd / "screenshots" / "automation"
+    screenshotter_path =  ROOT / "screenshots" / "automation"
     if take_screenshots and screenshotter_path.is_dir():
-        # Overwrite mod-list.json with the one found in the scenarios folder
-        current_modlist_path = USERDATA_PATH / "mods" / "mod-list.json"
-        current_modlist_path.unlink(missing_ok=True)
-        shutil.copy(str(screenshotter_path / "mod-list.json"), str(current_modlist_path))
+        # Swap in the screenshotter's mod-list, keeping the existing one to restore afterwards
+        userdata_path = Path(os.environ["FACTORIO_USERDATA"]).expanduser()
+        modlist_path = userdata_path / "mods" / "mod-list.json"
+        saved_modlist = modlist_path.read_text() if modlist_path.exists() else None
+        shutil.copy(str(screenshotter_path / "mod-list.json"), str(modlist_path))
 
-        # Link the scenario folder for the game to find
         scenarios_path = modfiles_path / "scenarios"
-        scenarios_path.mkdir(exist_ok=True)
-        (scenarios_path / "screenshotter").symlink_to(screenshotter_path / "scenario")
+        try:
+            # Link the scenario folder for the game to find
+            scenarios_path.mkdir(exist_ok=True)
+            scenario_link = scenarios_path / "screenshotter"
+            try:
+                scenario_link.symlink_to(screenshotter_path / "scenario", target_is_directory=True)
+            except OSError:  # Windows only permits symlinks when elevated
+                shutil.copytree(screenshotter_path / "scenario", scenario_link)
 
-        # Run the screenshotting scenario, waiting for it to signal it's done
-        print("- taking screenshots...", end=" ", flush=True)
-        with subprocess.Popen(
-            [FACTORIO_PATH,
-            "--load-scenario", f"{MODNAME}/screenshotter",
-            "--config", str(screenshotter_path / "config.ini"),
-            "--instrument-mod", MODNAME,  # use the same mod as the instrument mod for simplicity
-            "--disable-migration-window"
-            ], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True
-        ) as factorio:
-            if factorio.stdout is not None:
-                for line in factorio.stdout:
-                    if line.strip() == "screenshotter_done":
-                        factorio.terminate()
-        print("done")
+            # Run the screenshotting scenario, waiting for it to signal it's done
+            print("- taking screenshots...", end=" ", flush=True)
+            with subprocess.Popen(
+                [os.environ["FACTORIO"],
+                "--load-scenario", f"{MODNAME}/screenshotter",
+                "--config", str(screenshotter_path / "config.ini"),
+                "--instrument-mod", MODNAME,  # use the same mod as the instrument mod for simplicity
+                "--disable-migration-window"
+                ], stdout=subprocess.PIPE, bufsize=1, universal_newlines=True
+            ) as factorio:
+                if factorio.stdout is not None:
+                    for line in factorio.stdout:
+                        if line.strip() == "screenshotter_done":
+                            factorio.terminate()
+            print("done")
 
-        # Load metadata from generated JSON file
-        script_output_path = Path(USERDATA_PATH, "script-output")
-        with (script_output_path / "metadata.json").open("r") as file:
-            frame_corners = json.load(file)["frame_corners"]
-        print("- metadata loaded")
+            # Load metadata from generated JSON file
+            script_output_path = userdata_path / "script-output"
+            with (script_output_path / "metadata.json").open("r") as file:
+                frame_corners = json.load(file)["frame_corners"]
+            print("- metadata loaded")
 
-        # Clear previous screenshots
-        screenshots_path = cwd / "screenshots"
-        for screenshot in screenshots_path.iterdir():
-            if screenshot.is_file():
-                screenshot.unlink()
-        print("- previous screenshots cleared")
+            # Clear previous screenshots
+            screenshots_path = ROOT / "screenshots"
+            for screenshot in screenshots_path.iterdir():
+                if screenshot.is_file():
+                    screenshot.unlink()
+            print("- previous screenshots cleared")
 
-        # Crop screenshots according to the given dimensions
-        for scene, corners in frame_corners.items():
-            screenshot_path = script_output_path / f"{scene}.png"
-            image = Image.open(screenshot_path)
+            # Crop screenshots according to the given dimensions
+            for scene, corners in frame_corners.items():
+                screenshot_path = script_output_path / f"{scene}.png"
+                image = Image.open(screenshot_path)
 
-            cropped_img = image.crop((
-                corners["top_left"]["x"] - 15,
-                corners["top_left"]["y"] - 15,
-                corners["bottom_right"]["x"] + 15,
-                corners["bottom_right"]["y"] + 15
-            ))
-            cropped_img.save(screenshots_path / f"{scene}.png")
-        print("- screenshots cropped and saved")
+                cropped_img = image.crop((
+                    corners["top_left"]["x"] - 15,
+                    corners["top_left"]["y"] - 15,
+                    corners["bottom_right"]["x"] + 15,
+                    corners["bottom_right"]["y"] + 15
+                ))
+                cropped_img.save(screenshots_path / f"{scene}.png")
+            print("- screenshots cropped and saved")
 
-        # Clean up
-        shutil.rmtree(script_output_path)
-        shutil.rmtree(scenarios_path)
+            # Clean up only what this run produced, leaving the rest of script-output alone
+            (script_output_path / "metadata.json").unlink()
+            for scene in frame_corners:
+                (script_output_path / f"{scene}.png").unlink()
+        finally:
+            shutil.rmtree(scenarios_path, ignore_errors=True)
+            if saved_modlist is not None:
+                modlist_path.write_text(saved_modlist, newline="\n")
 
     # Commit changes
     repo.git.add("-A")
@@ -236,11 +256,11 @@ def publish_release(take_screenshots: bool) -> None:
             "gh", "release", "create", tag_name,
             "--title", f"{info_data["title"]} {new_mod_version}",
             "--notes-from-tag",
-        ], cwd=cwd, stdout=subprocess.DEVNULL)
+        ], cwd=ROOT, stdout=subprocess.DEVNULL)
         subprocess.run([
             "gh", "release", "upload", tag_name,
             archive_path
-        ], cwd=cwd, stdout=subprocess.DEVNULL)
+        ], cwd=ROOT, stdout=subprocess.DEVNULL)
         print("done")
 
         # Publish to mod portal
@@ -261,14 +281,14 @@ def publish_release(take_screenshots: bool) -> None:
 
         print("- publishing to mod portal...", end=" ", flush=True)
         UPLOAD_API_URL = "https://mods.factorio.com/api/v2/mods/releases/init_upload"
-        UPLOAD_API_KEY = os.getenv("MOD_UPLOAD_API_KEY") or ""
+        UPLOAD_API_KEY = os.environ["MOD_UPLOAD_API_KEY"]
         upload_data(UPLOAD_API_URL, UPLOAD_API_KEY, archive_path, "file")
         print("done")
 
         # Update mod portal screenshots if requested
         if take_screenshots:
             IMAGE_API_URL = "https://mods.factorio.com/api/v2/mods/images"
-            EDIT_API_KEY = os.getenv("MOD_EDIT_API_KEY") or ""
+            EDIT_API_KEY = os.environ["MOD_EDIT_API_KEY"]
 
             # Remove old mod portal images
             print("- removing old mod portal images...", end=" ", flush=True)

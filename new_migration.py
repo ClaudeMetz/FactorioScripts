@@ -5,11 +5,11 @@ import re
 import shutil
 from pathlib import Path
 
-cwd = Path.cwd() / ".."  # back out of scripts folder
+ROOT = Path(__file__).resolve().parent.parent  # the script lives in ROOT/scripts
 
 def new_migration() -> None:
     # Determine the next mod version
-    modfiles_path = cwd / "modfiles"
+    modfiles_path = ROOT / "modfiles"
     with (modfiles_path / "info.json").open("r") as file:
         split_old_mod_version = json.load(file)["version"].split(".")
     split_old_mod_version[-1] = str(int(split_old_mod_version[-1]) + 1)  # update version to the new one
