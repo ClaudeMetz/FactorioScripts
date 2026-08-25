@@ -253,16 +253,17 @@ def publish_release(take_screenshots: bool) -> None:
 
         # Create Github release
         print("- creating Github release...", end=" ", flush=True)
-        subprocess.run([
+        result = subprocess.run([
             "gh", "release", "create", tag_name,
             "--title", f"{info_data["title"]} {new_mod_version}",
             "--notes-from-tag",
-        ], cwd=ROOT, stdout=subprocess.DEVNULL)
-        subprocess.run([
-            "gh", "release", "upload", tag_name,
-            archive_path
-        ], cwd=ROOT, stdout=subprocess.DEVNULL)
-        print("done")
+        ], cwd=ROOT, capture_output=True, text=True)
+        if result.returncode == 0:
+            result = subprocess.run([
+                "gh", "release", "upload", tag_name,
+                archive_path
+            ], cwd=ROOT, capture_output=True, text=True)
+        print("done" if result.returncode == 0 else f"failed: {result.stderr.strip()}")
 
         # Publish to mod portal
         def upload_data(upload_url: str, api_key: str, file_path: str, dataset_name: str) -> None:
@@ -311,22 +312,26 @@ def publish_release(take_screenshots: bool) -> None:
             IMAGE_API_URL = "https://mods.factorio.com/api/v2/mods/images"
             EDIT_API_KEY = os.environ["MOD_EDIT_API_KEY"]
 
-            # Remove old mod portal images
-            print("- removing old mod portal images...", end=" ", flush=True)
-            response = requests.post(
-                f"{IMAGE_API_URL}/edit",
-                data = {"mod": MODNAME, "images": []},
-                headers = {"Authorization": f"Bearer {EDIT_API_KEY}"}
-            )
-            if not response.ok:
-                raise RuntimeError(f"edit failed: {response.text}")
-            print("done")
+            try:
+                # Remove old mod portal images
+                print("- removing old mod portal images...", end=" ", flush=True)
+                response = requests.post(
+                    f"{IMAGE_API_URL}/edit",
+                    data = {"mod": MODNAME, "images": []},
+                    headers = {"Authorization": f"Bearer {EDIT_API_KEY}"}
+                )
+                if not response.ok:
+                    raise RuntimeError(f"edit failed: {response.text}")
+                print("done")
 
-            # Upload new mod portal images
-            print("- uploading to mod portal...", end=" ", flush=True)
-            for screenshot_path in sorted(p for p in screenshots_path.iterdir() if p.is_file()):
-                upload_data(f"{IMAGE_API_URL}/add", EDIT_API_KEY, str(screenshot_path), "image")
-            print("done")
+                # Upload new mod portal images
+                print("- uploading to mod portal...", end=" ", flush=True)
+                for screenshot_path in sorted(p for p in screenshots_path.iterdir() if p.is_file()):
+                    upload_data(f"{IMAGE_API_URL}/add", EDIT_API_KEY, str(screenshot_path), "image")
+                print("done")
+            except (requests.RequestException, RuntimeError) as error:  # the release is already public
+                print(f"failed: {error}")
+                print("  ! the old images were removed first, so check the mod page")
 
     if not LOCAL:
         Path(archive_path).unlink()
