@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
-from git import Repo
+from git import GitCommandError, Repo
 from PIL import Image  # type: ignore
 
 ROOT = Path(__file__).resolve().parent.parent  # the script lives in ROOT/scripts
@@ -46,6 +46,13 @@ def publish_release(take_screenshots: bool) -> None:
     if take_screenshots and not Path(os.environ["FACTORIO"]).exists():
         print(f"- no Factorio at {os.environ['FACTORIO']}, aborting")
         return
+
+    if RELEASE:
+        try:  # incorporate remote commits before changing any release files
+            repo.git.pull("--ff-only", "origin", "master")
+        except GitCommandError as error:
+            print(f"- could not sync with origin/master, aborting: {error}")
+            return
 
     # Check CI succeeded if applicable
     ci_configured = os.path.isdir(os.path.join(ROOT, ".github", "workflows"))
