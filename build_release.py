@@ -254,7 +254,7 @@ def publish_release(take_screenshots: bool) -> None:
                 message += f"{line.strip()}\n"
             else:
                 message += f"### {line.strip()}\n"
-        repo.create_tag(tag_name, message=message)
+        repo.create_tag(tag_name, message=message, cleanup="verbatim")
         print("- tag created")
 
         # Push commits & tags to Github
